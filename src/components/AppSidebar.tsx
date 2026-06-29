@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LogOut, UserPlus, FilterX } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, UserPlus, FilterX, LineChart } from "lucide-react";
 import geodudexLogo from "@/assets/gdudex-logo.svg";
 import { type PoligonoData, type PlanReguladorData } from "./ActivosLayerControl";
 import IntelligenceProjects from "./IntelligenceProjects";
@@ -92,6 +92,7 @@ export function AppSidebar({
   const showCreateUser = hasPermission("modulo_creacion_usuarios");
   const showRadial = hasPermission("analisis_radial");
   const showCorredor = hasPermission("corredor_bioceanico");
+  const showInnovation = hasPermission("innovation_dashboard");
 
   return (
     <div className="relative">
