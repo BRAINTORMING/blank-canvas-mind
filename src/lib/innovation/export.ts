@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 
 export interface Sheet {
   name: string;
-  rows: Array<Record<string, string | number>>;
+  rows: Array<Record<string, unknown>>;
 }
 
 export function exportExcel(filename: string, sheets: Sheet[]) {
