@@ -13,7 +13,8 @@ export type Permission =
   | 'modulo_creacion_usuarios'
   | 'analizador_proyectos'
   | 'analisis_radial'
-  | 'corredor_bioceanico';
+  | 'corredor_bioceanico'
+  | 'innovation_dashboard';
 
 export const ALL_PERMISSIONS: Permission[] = [
   'capas',
@@ -27,6 +28,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'analizador_proyectos',
   'analisis_radial',
   'corredor_bioceanico',
+  'innovation_dashboard',
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -41,6 +43,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   analizador_proyectos: 'Analizador de Proyectos',
   analisis_radial: 'Análisis Radial',
   corredor_bioceanico: 'Corredor Bioceánico',
+  innovation_dashboard: 'Innovation Dashboard',
 };
 
 interface AuthContextType {

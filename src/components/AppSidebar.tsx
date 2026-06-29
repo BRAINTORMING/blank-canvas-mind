@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LogOut, UserPlus, FilterX } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, UserPlus, FilterX, LineChart } from "lucide-react";
 import geodudexLogo from "@/assets/gdudex-logo.svg";
 import { type PoligonoData, type PlanReguladorData } from "./ActivosLayerControl";
 import IntelligenceProjects from "./IntelligenceProjects";
@@ -92,6 +92,7 @@ export function AppSidebar({
   const showCreateUser = hasPermission("modulo_creacion_usuarios");
   const showRadial = hasPermission("analisis_radial");
   const showCorredor = hasPermission("corredor_bioceanico");
+  const showInnovation = hasPermission("innovation_dashboard");
 
   return (
     <div className="relative">
@@ -222,6 +223,24 @@ export function AppSidebar({
                   >
                     <UserPlus className="h-4 w-4 text-foreground/80" />
                     Agregar usuario
+                  </button>
+                </div>
+              </>
+            )}
+
+            {showInnovation && (
+              <>
+                <SidebarSectionHeader title="Tablero estratégico de Innovation Accounting">
+                  Estrategia
+                </SidebarSectionHeader>
+                <div className="px-1 pt-1">
+                  <button
+                    onClick={() => navigate("/innovation")}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium text-foreground hover:bg-[#EFF6FF] transition-colors"
+                    title="Innovation Dashboard"
+                  >
+                    <LineChart className="h-4 w-4 text-foreground/80" />
+                    Innovation Dashboard
                   </button>
                 </div>
               </>
