@@ -770,13 +770,18 @@ export default function SearchBar({
     }
   };
 
-  // Handle AI mode change - open modal for pre-evaluacion, allow switching between modes
+  // Handle AI mode change - open modal for pre-evaluacion, allow switching between modes.
+  // Free plan users are locked out of every AI search mode.
   const handleAiModeChange = (mode: AIMode) => {
+    if (isFreePlan) {
+      showPaidLockToast();
+      return;
+    }
     // Close any open modal first when switching modes
     if (showPreEvaluacionModal && mode !== 'pre-evaluacion') {
       setShowPreEvaluacionModal(false);
     }
-    
+
     setAiMode(mode);
     if (mode === 'pre-evaluacion') {
       setShowPreEvaluacionModal(true);
