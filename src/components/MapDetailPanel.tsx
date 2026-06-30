@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { X, GripHorizontal, MapPin, ExternalLink, Star } from 'lucide-react';
+import { X, GripHorizontal, MapPin, ExternalLink, Star, Lock } from 'lucide-react';
 import type { DetailPayload, DetailType } from '@/lib/mapPopups';
 import { useFavorites, favoriteIdFor } from '@/hooks/useFavorites';
+import { useAuth } from '@/contexts/AuthContext';
+import { showPaidLockToast } from '@/lib/planLocks';
 
 interface PanelState {
   open: boolean;
