@@ -244,7 +244,7 @@ export default function SearchBar({
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { hasPermission } = useAuth();
+  const { hasPermission, isFreePlan } = useAuth();
   const userLocation = useUserLocation();
   const { currentWord, isAnimating } = useAnimatedPlaceholder(searchMode === 'ai');
   const { history, addToHistory } = useSearchHistory();
