@@ -136,18 +136,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (applyOptimisticPermissions(userId)) return;
         setPermissions([]);
         setRegionesPermitidas([]);
+        setPlan(null);
         return;
       }
 
       // Derive permissions and allowed regions from the user's `plan`.
-      // - admin: all permissions, all regions (empty array = unrestricted)
-      // - free (and any other non-admin plan): all permissions EXCEPT user creation
-      //   and innovation dashboard; restricted to Tarapacá region.
-      const plan = (data.plan || 'free').toString().toLowerCase();
-      const { permissions: derivedPerms, regiones: derivedRegiones } = getPlanAccess(plan);
+      const normalizedPlan = (data.plan || 'free').toString().toLowerCase();
+      const { permissions: derivedPerms, regiones: derivedRegiones } = getPlanAccess(normalizedPlan);
 
       setPermissions(derivedPerms);
       setRegionesPermitidas(derivedRegiones);
+      setPlan(normalizedPlan);
       optimisticPermissionsRef.current = null;
 
       // Update ultima_conexion
