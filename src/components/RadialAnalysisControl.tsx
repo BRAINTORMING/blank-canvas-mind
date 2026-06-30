@@ -25,12 +25,14 @@ interface RadialAnalysisControlProps {
  *  - "radial:pointPicked" { lat, lng }
  */
 export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysisControlProps) {
+  const { isFreePlan } = useAuth();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(false);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(10);
 
   const hasRegion = Boolean(selectedRegion);
+  const pointLocked = isFreePlan; // free users can activate but can't place the center
 
   // Listen for clicks coming from the map
   useEffect(() => {
