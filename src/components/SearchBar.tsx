@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Loader2, Brain, Search, ArrowUp, Wand2, Filter, Layers, MapPin, Leaf, ChevronRight, Briefcase, History, Clock, FileSearch, TrendingUp, ClipboardList, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Loader2, Brain, Search, ArrowUp, Wand2, Filter, Layers, MapPin, Leaf, ChevronRight, Briefcase, History, Clock, FileSearch, TrendingUp, ClipboardList, Maximize2, Minimize2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
