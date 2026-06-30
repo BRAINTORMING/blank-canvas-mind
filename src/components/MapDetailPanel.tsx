@@ -79,7 +79,7 @@ const Row = ({ label, value }: RowProps) => {
   );
 };
 
-function Body({ payload }: { payload: DetailPayload }) {
+function Body({ payload, lockProyectoFields }: { payload: DetailPayload; lockProyectoFields: boolean }) {
   const d = payload.data || {};
   switch (payload.type) {
     case 'activo':
@@ -116,8 +116,14 @@ function Body({ payload }: { payload: DetailPayload }) {
         <div className="space-y-0">
           <Row label="Titular" value={d.titular} />
           <Row label="Inversión" value={<span className="font-semibold text-foreground">{formatInversion(d.inversion)}</span>} />
-          <Row label="Estado" value={d.estadoProyecto} />
-          <Row label="Sector" value={d.sectorProductivo} />
+          <Row
+            label="Estado"
+            value={lockProyectoFields ? <LockedValue onClick={() => showPaidLockToast()} /> : d.estadoProyecto}
+          />
+          <Row
+            label="Sector"
+            value={lockProyectoFields ? <LockedValue onClick={() => showPaidLockToast()} /> : d.sectorProductivo}
+          />
           <Row label="Tipo" value={d.tipoPresentacion} />
           <Row label="Región" value={d.region} />
           <Row label="Comuna" value={d.comuna} />
