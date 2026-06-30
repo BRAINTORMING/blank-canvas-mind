@@ -10,6 +10,7 @@ import { type Proyecto } from '@/hooks/useProyectos';
 import EvaluacionPRICModal, { type EvaluacionPRICData } from './EvaluacionPRICModal';
 import proj4 from 'proj4';
 import { useAuth } from '@/contexts/AuthContext';
+import { showPaidLockToast } from '@/lib/planLocks';
 
 interface ActivoMapa {
   id: string;
