@@ -1156,6 +1156,7 @@ export default function SearchBar({
                     >
                       <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#2979FF' }} />
                       <span className="truncate">Pasos a seguir</span>
+                      {isFreePlan && <Lock className="h-3 w-3 flex-shrink-0 opacity-70" />}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-[1000] shadow-md">
                         Qué pasos a seguir de acuerdo al Tipo de Proyecto
                       </span>
