@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, ChevronRight, MapPin } from "lucide-react";
+import { Target, ChevronRight, MapPin, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -9,6 +9,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { showPaidLockToast } from "@/lib/planLocks";
 
 interface RadialAnalysisControlProps {
   selectedRegion?: string;
