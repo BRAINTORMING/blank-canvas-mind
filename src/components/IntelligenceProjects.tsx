@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronRight, Briefcase, Wheat, Zap, Building2, TrainFront, Droplets, Ship, Home, Factory, Mountain, MoreHorizontal, Fish, MapPinned, Trash2, LucideIcon, BarChart3 } from 'lucide-react';
+import { Search, ChevronRight, Briefcase, Wheat, Zap, Building2, TrainFront, Droplets, Ship, Home, Factory, Mountain, MoreHorizontal, Fish, MapPinned, Trash2, LucideIcon, BarChart3, Lock } from 'lucide-react';
+import { showPaidLockToast } from '@/lib/planLocks';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import {
