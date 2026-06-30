@@ -293,10 +293,12 @@ export default function MapDetailPanel() {
     window.addEventListener('mouseup', onResizeEnd);
   };
 
+  const { isFreePlan } = useAuth();
   if (!state.open || !state.payload) return null;
   const p = state.payload;
+  const lockProyectoFields = isFreePlan && p.type === 'proyecto';
   const title = titleFor(p);
-  const badge = badgeFor(p);
+  const badge = badgeFor(p, lockProyectoFields);
   const d = p.data || {};
   const location = [d.region, d.comuna].filter(Boolean).join(', ');
   const accentColor = p.color || 'hsl(204 93% 45%)';
