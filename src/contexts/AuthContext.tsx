@@ -46,6 +46,37 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   innovation_dashboard: 'Innovation Dashboard',
 };
 
+/**
+ * Permissions excluded from non-admin plans.
+ * Free users (and any non-admin plan) get everything EXCEPT these.
+ */
+const ADMIN_ONLY_PERMISSIONS: Permission[] = ['modulo_creacion_usuarios', 'innovation_dashboard'];
+
+/**
+ * Regions allowed for free plan users. Empty array = all regions.
+ */
+const FREE_PLAN_REGIONS = ['Tarapacá'];
+
+/**
+ * Derive permissions and allowed regions purely from the user's `plan` column.
+ * - 'admin': full access to every permission and every region.
+ * - anything else (default 'free'): all permissions except admin-only ones,
+ *   restricted to the Tarapacá region.
+ */
+export function getPlanAccess(plan: string | null | undefined): {
+  permissions: Permission[];
+  regiones: string[];
+} {
+  const normalized = (plan || 'free').toString().toLowerCase();
+  if (normalized === 'admin') {
+    return { permissions: [...ALL_PERMISSIONS], regiones: [] };
+  }
+  return {
+    permissions: ALL_PERMISSIONS.filter(p => !ADMIN_ONLY_PERMISSIONS.includes(p)),
+    regiones: [...FREE_PLAN_REGIONS],
+  };
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
