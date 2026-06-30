@@ -65,14 +65,22 @@ export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysis
     );
   }, [active, center, radiusKm]);
 
-  // Toggle pick mode on the map (cursor crosshair)
+  // Toggle pick mode on the map (cursor crosshair).
+  // Free users can activate but the point picker stays disabled.
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("radial:pickMode", {
-        detail: { enabled: active && hasRegion && !center },
+        detail: { enabled: active && hasRegion && !center && !pointLocked },
       })
     );
-  }, [active, hasRegion, center]);
+  }, [active, hasRegion, center, pointLocked]);
+
+  // If a free user activates the tool, surface the lock message.
+  useEffect(() => {
+    if (active && pointLocked && !center) {
+      showPaidLockToast();
+    }
+  }, [active, pointLocked, center]);
 
   const handleToggleActive = (checked: boolean | "indeterminate") => {
     const next = Boolean(checked);
