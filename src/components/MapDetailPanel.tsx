@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { X, GripHorizontal, MapPin, ExternalLink, Star } from 'lucide-react';
+import { X, GripHorizontal, MapPin, ExternalLink, Star, Lock } from 'lucide-react';
 import type { DetailPayload, DetailType } from '@/lib/mapPopups';
 import { useFavorites, favoriteIdFor } from '@/hooks/useFavorites';
+import { useAuth } from '@/contexts/AuthContext';
+import { showPaidLockToast } from '@/lib/planLocks';
 
 interface PanelState {
   open: boolean;
@@ -37,17 +39,33 @@ function titleFor(p: DetailPayload): string {
   }
 }
 
-function badgeFor(p: DetailPayload): string | null {
+function badgeFor(p: DetailPayload, hideProyectoEstado = false): string | null {
   const d = p.data || {};
   switch (p.type) {
     case 'activo': return d.capa || null;
-    case 'proyecto': return d.estadoProyecto || null;
+    case 'proyecto': return hideProyectoEstado ? null : (d.estadoProyecto || null);
     case 'poligono': return d.capa || null;
     case 'planRegulador': return 'Plan Regulador';
     case 'comuna': return 'Comuna';
     case 'pric': return 'PRIC';
     default: return null;
   }
+}
+
+/** Inline "locked" placeholder rendered in place of sensitive proyecto fields. */
+function LockedValue({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Desbloquee con un Plan de Pago"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 transition-colors select-none"
+      style={{ filter: 'blur(0.5px)' }}
+    >
+      <Lock className="h-3 w-3" />
+      <span className="tracking-wider">••••••••</span>
+    </button>
+  );
 }
 
 interface RowProps { label: string; value?: React.ReactNode }
@@ -61,7 +79,7 @@ const Row = ({ label, value }: RowProps) => {
   );
 };
 
-function Body({ payload }: { payload: DetailPayload }) {
+function Body({ payload, lockProyectoFields }: { payload: DetailPayload; lockProyectoFields: boolean }) {
   const d = payload.data || {};
   switch (payload.type) {
     case 'activo':
@@ -98,8 +116,14 @@ function Body({ payload }: { payload: DetailPayload }) {
         <div className="space-y-0">
           <Row label="Titular" value={d.titular} />
           <Row label="Inversión" value={<span className="font-semibold text-foreground">{formatInversion(d.inversion)}</span>} />
-          <Row label="Estado" value={d.estadoProyecto} />
-          <Row label="Sector" value={d.sectorProductivo} />
+          <Row
+            label="Estado"
+            value={lockProyectoFields ? <LockedValue onClick={() => showPaidLockToast()} /> : d.estadoProyecto}
+          />
+          <Row
+            label="Sector"
+            value={lockProyectoFields ? <LockedValue onClick={() => showPaidLockToast()} /> : d.sectorProductivo}
+          />
           <Row label="Tipo" value={d.tipoPresentacion} />
           <Row label="Región" value={d.region} />
           <Row label="Comuna" value={d.comuna} />
@@ -269,10 +293,12 @@ export default function MapDetailPanel() {
     window.addEventListener('mouseup', onResizeEnd);
   };
 
+  const { isFreePlan } = useAuth();
   if (!state.open || !state.payload) return null;
   const p = state.payload;
+  const lockProyectoFields = isFreePlan && p.type === 'proyecto';
   const title = titleFor(p);
-  const badge = badgeFor(p);
+  const badge = badgeFor(p, lockProyectoFields);
   const d = p.data || {};
   const location = [d.region, d.comuna].filter(Boolean).join(', ');
   const accentColor = p.color || 'hsl(204 93% 45%)';
@@ -325,7 +351,7 @@ export default function MapDetailPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pb-4 pt-1">
-        <Body payload={p} />
+        <Body payload={p} lockProyectoFields={lockProyectoFields} />
       </div>
 
       {/* Resize handle */}

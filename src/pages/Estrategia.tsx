@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Download, ChevronDown, ChevronUp, TableProperties, MapPin } from 'lucide-react';
+import { ArrowLeft, BarChart3, Download, ChevronDown, ChevronUp, TableProperties, MapPin, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DashboardKPIs from '@/components/dashboard/DashboardKPIs';
 import DashboardFiltersPanel from '@/components/dashboard/DashboardFilters';
@@ -9,9 +9,36 @@ import DashboardTable from '@/components/dashboard/DashboardTable';
 import DashboardComparison from '@/components/dashboard/DashboardComparison';
 import DashboardDetailModal from '@/components/dashboard/DashboardDetailModal';
 import { useDashboardProyectos, type DashboardProyecto } from '@/hooks/useDashboardProyectos';
+import { useAuth } from '@/contexts/AuthContext';
+import { PAID_LOCK_MESSAGE } from '@/lib/planLocks';
 import geodudexLogo from '@/assets/LogoFull.svg';
 
+function PaidPlanGate() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 text-center shadow-lg">
+        <div className="mx-auto h-14 w-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
+          <Lock className="h-7 w-7" />
+        </div>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Función bloqueada</h2>
+        <p className="text-sm text-muted-foreground mb-6">{PAID_LOCK_MESSAGE}</p>
+        <Link to="/">
+          <Button variant="default" className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Volver al mapa
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function Estrategia() {
+  const { isFreePlan } = useAuth();
+  if (isFreePlan) return <PaidPlanGate />;
+  return <EstrategiaInner />;
+}
+
+function EstrategiaInner() {
   const {
     filtered, loading, error, filters, setFilters,
     uniqueRegiones, uniqueEstados, uniqueSectores, uniqueProvincias, uniqueComunas, kpis,

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Loader2, Brain, Search, ArrowUp, Wand2, Filter, Layers, MapPin, Leaf, ChevronRight, Briefcase, History, Clock, FileSearch, TrendingUp, ClipboardList, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Loader2, Brain, Search, ArrowUp, Wand2, Filter, Layers, MapPin, Leaf, ChevronRight, Briefcase, History, Clock, FileSearch, TrendingUp, ClipboardList, Maximize2, Minimize2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -10,6 +10,7 @@ import { type Proyecto } from '@/hooks/useProyectos';
 import EvaluacionPRICModal, { type EvaluacionPRICData } from './EvaluacionPRICModal';
 import proj4 from 'proj4';
 import { useAuth } from '@/contexts/AuthContext';
+import { showPaidLockToast } from '@/lib/planLocks';
 
 interface ActivoMapa {
   id: string;
@@ -244,7 +245,7 @@ export default function SearchBar({
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { hasPermission } = useAuth();
+  const { hasPermission, isFreePlan } = useAuth();
   const userLocation = useUserLocation();
   const { currentWord, isAnimating } = useAnimatedPlaceholder(searchMode === 'ai');
   const { history, addToHistory } = useSearchHistory();
@@ -770,13 +771,18 @@ export default function SearchBar({
     }
   };
 
-  // Handle AI mode change - open modal for pre-evaluacion, allow switching between modes
+  // Handle AI mode change - open modal for pre-evaluacion, allow switching between modes.
+  // Free plan users are locked out of every AI search mode.
   const handleAiModeChange = (mode: AIMode) => {
+    if (isFreePlan) {
+      showPaidLockToast();
+      return;
+    }
     // Close any open modal first when switching modes
     if (showPreEvaluacionModal && mode !== 'pre-evaluacion') {
       setShowPreEvaluacionModal(false);
     }
-    
+
     setAiMode(mode);
     if (mode === 'pre-evaluacion') {
       setShowPreEvaluacionModal(true);
@@ -1109,6 +1115,7 @@ export default function SearchBar({
                     >
                       <FileSearch className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="truncate">Evaluación PRIC</span>
+                      {isFreePlan && <Lock className="h-3 w-3 flex-shrink-0 opacity-70" />}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-[1000] shadow-md">
                         Evaluación Rápida PRIC - Plan Regulador Intercomunal Costero
                       </span>
@@ -1128,6 +1135,7 @@ export default function SearchBar({
                     >
                       <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#FFB300' }} />
                       <span className="truncate">Oportunidades</span>
+                      {isFreePlan && <Lock className="h-3 w-3 flex-shrink-0 opacity-70" />}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-[1000] shadow-md">
                         Oportunidades de Inversión
                       </span>
@@ -1148,6 +1156,7 @@ export default function SearchBar({
                     >
                       <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#2979FF' }} />
                       <span className="truncate">Pasos a seguir</span>
+                      {isFreePlan && <Lock className="h-3 w-3 flex-shrink-0 opacity-70" />}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-[1000] shadow-md">
                         Qué pasos a seguir de acuerdo al Tipo de Proyecto
                       </span>

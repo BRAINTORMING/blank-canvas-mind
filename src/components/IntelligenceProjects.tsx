@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronRight, Briefcase, Wheat, Zap, Building2, TrainFront, Droplets, Ship, Home, Factory, Mountain, MoreHorizontal, Fish, MapPinned, Trash2, LucideIcon, BarChart3 } from 'lucide-react';
+import { Search, ChevronRight, Briefcase, Wheat, Zap, Building2, TrainFront, Droplets, Ship, Home, Factory, Mountain, MoreHorizontal, Fish, MapPinned, Trash2, LucideIcon, BarChart3, Lock } from 'lucide-react';
+import { showPaidLockToast } from '@/lib/planLocks';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -74,10 +75,11 @@ interface IntelligenceProjectsProps {
 
 export default function IntelligenceProjects({ onFiltersChange, externalSearchText, selectedRegion, selectedComunas, resetKey, onHasFiltersChange }: IntelligenceProjectsProps) {
   const { proyectos, loading, estadosUnicos, sectoresUnicos, inversionStats } = useProyectos(selectedRegion, selectedComunas);
-  const { hasPermission } = useAuth();
+  const { hasPermission, isFreePlan } = useAuth();
   const { trackModule } = useSessionTracking();
   const navigate = useNavigate();
   const showAnalyzer = hasPermission('analizador_proyectos');
+  const lockEstadoSector = isFreePlan;
   
   const [isOpen, setIsOpen] = useState(true);
 
@@ -147,10 +149,12 @@ export default function IntelligenceProjects({ onFiltersChange, externalSearchTe
   const impactoFiltrado = proyectosFiltrados.reduce((sum, p) => sum + (p.inversion || 0), 0);
 
   const toggleEstado = (estado: string) => {
+    if (lockEstadoSector) { showPaidLockToast(); return; }
     setSelectedEstados(prev => prev.includes(estado) ? prev.filter(e => e !== estado) : [...prev, estado]);
   };
 
   const toggleSector = (sector: string) => {
+    if (lockEstadoSector) { showPaidLockToast(); return; }
     setSelectedSectores(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector]);
   };
 
@@ -281,12 +285,18 @@ export default function IntelligenceProjects({ onFiltersChange, externalSearchTe
                     key={estado}
                     onClick={() => toggleEstado(estado)}
                     className={cn(
-                      "px-2.5 py-1.5 text-[10px] rounded-lg font-medium transition-all duration-150",
+                      "relative px-2.5 py-1.5 text-[10px] rounded-lg font-medium transition-all duration-150",
                       "hover:scale-[1.03]",
-                      getEstadoStyle(estado, selectedEstados.includes(estado))
+                      lockEstadoSector
+                        ? "bg-muted/40 text-muted-foreground/70 border border-border/60 hover:bg-muted/60 cursor-not-allowed pl-5"
+                        : getEstadoStyle(estado, selectedEstados.includes(estado))
                     )}
-                    title={estado}
+                    title={lockEstadoSector ? 'Función bloqueada — disponible en plan de pago' : estado}
+                    aria-disabled={lockEstadoSector}
                   >
+                    {lockEstadoSector && (
+                      <Lock className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-muted-foreground" />
+                    )}
                     {estado}
                   </button>
                 ))}
@@ -307,16 +317,22 @@ export default function IntelligenceProjects({ onFiltersChange, externalSearchTe
                       className={cn(
                         "relative flex items-center justify-center p-2.5 rounded-xl transition-all duration-150 group",
                         "hover:scale-[1.03]",
-                        isSelected
-                          ? "glass-toggle active text-primary"
-                          : "glass-toggle text-muted-foreground"
+                        lockEstadoSector
+                          ? "bg-muted/40 text-muted-foreground/60 border border-border/60 cursor-not-allowed"
+                          : isSelected
+                            ? "glass-toggle active text-primary"
+                            : "glass-toggle text-muted-foreground"
                       )}
-                      title={sector}
+                      title={lockEstadoSector ? 'Función bloqueada — disponible en plan de pago' : sector}
+                      aria-disabled={lockEstadoSector}
                     >
                       <IconComponent className="h-4 w-4" />
+                      {lockEstadoSector && (
+                        <Lock className="absolute -top-1 -right-1 h-3 w-3 text-muted-foreground bg-white rounded-full p-[1px] border border-border" />
+                      )}
                       {/* Tooltip */}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-75 whitespace-nowrap pointer-events-none z-50 border border-primary/20 text-foreground" style={{ background: 'hsl(0 0% 100% / 0.98)', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-2)' }}>
-                        {sector}
+                        {lockEstadoSector ? '🔒 Plan de pago' : sector}
                       </span>
                     </button>
                   );

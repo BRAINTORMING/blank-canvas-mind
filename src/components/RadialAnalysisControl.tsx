@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, ChevronRight, MapPin } from "lucide-react";
+import { Target, ChevronRight, MapPin, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -9,6 +9,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { showPaidLockToast } from "@/lib/planLocks";
 
 interface RadialAnalysisControlProps {
   selectedRegion?: string;
@@ -23,12 +25,14 @@ interface RadialAnalysisControlProps {
  *  - "radial:pointPicked" { lat, lng }
  */
 export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysisControlProps) {
+  const { isFreePlan } = useAuth();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(false);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(10);
 
   const hasRegion = Boolean(selectedRegion);
+  const pointLocked = isFreePlan; // free users can activate but can't place the center
 
   // Listen for clicks coming from the map
   useEffect(() => {
@@ -61,14 +65,22 @@ export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysis
     );
   }, [active, center, radiusKm]);
 
-  // Toggle pick mode on the map (cursor crosshair)
+  // Toggle pick mode on the map (cursor crosshair).
+  // Free users can activate but the point picker stays disabled.
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("radial:pickMode", {
-        detail: { enabled: active && hasRegion && !center },
+        detail: { enabled: active && hasRegion && !center && !pointLocked },
       })
     );
-  }, [active, hasRegion, center]);
+  }, [active, hasRegion, center, pointLocked]);
+
+  // If a free user activates the tool, surface the lock message.
+  useEffect(() => {
+    if (active && pointLocked && !center) {
+      showPaidLockToast();
+    }
+  }, [active, pointLocked, center]);
 
   const handleToggleActive = (checked: boolean | "indeterminate") => {
     const next = Boolean(checked);
@@ -136,9 +148,15 @@ export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysis
                     ⚠ Selecciona una región en el filtro "Regiones y Comunas" para continuar.
                   </p>
                 )}
-                {active && hasRegion && !center && (
+                {active && hasRegion && !center && !pointLocked && (
                   <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                     Haz clic en el mapa para fijar el punto central.
+                  </p>
+                )}
+                {active && pointLocked && !center && (
+                  <p className="text-[10px] text-amber-600 mt-1 leading-tight inline-flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Posicionar el punto requiere un Plan de Pago.
                   </p>
                 )}
               </div>

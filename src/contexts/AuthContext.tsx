@@ -82,6 +82,8 @@ interface AuthContextType {
   session: Session | null;
   permissions: Permission[];
   regionesPermitidas: string[];
+  plan: string | null;
+  isFreePlan: boolean;
   loading: boolean;
   hasPermission: (permission: Permission) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -97,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [regionesPermitidas, setRegionesPermitidas] = useState<string[]>([]);
+  const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const permissionRequestRef = useRef(0);
   const optimisticPermissionsRef = useRef<{
@@ -133,18 +136,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (applyOptimisticPermissions(userId)) return;
         setPermissions([]);
         setRegionesPermitidas([]);
+        setPlan(null);
         return;
       }
 
       // Derive permissions and allowed regions from the user's `plan`.
-      // - admin: all permissions, all regions (empty array = unrestricted)
-      // - free (and any other non-admin plan): all permissions EXCEPT user creation
-      //   and innovation dashboard; restricted to Tarapacá region.
-      const plan = (data.plan || 'free').toString().toLowerCase();
-      const { permissions: derivedPerms, regiones: derivedRegiones } = getPlanAccess(plan);
+      const normalizedPlan = (data.plan || 'free').toString().toLowerCase();
+      const { permissions: derivedPerms, regiones: derivedRegiones } = getPlanAccess(normalizedPlan);
 
       setPermissions(derivedPerms);
       setRegionesPermitidas(derivedRegiones);
+      setPlan(normalizedPlan);
       optimisticPermissionsRef.current = null;
 
       // Update ultima_conexion
@@ -182,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           optimisticPermissionsRef.current = null;
           setPermissions([]);
           setRegionesPermitidas([]);
+          setPlan(null);
         }
       }
     );
@@ -251,8 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRegionesPermitidas(nextRegiones);
   };
 
+  const isFreePlan = (plan ?? 'free').toLowerCase() !== 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, session, permissions, regionesPermitidas, loading, hasPermission, signIn, signOut, refreshPermissions, setLocalPermissions }}>
+    <AuthContext.Provider value={{ user, session, permissions, regionesPermitidas, plan, isFreePlan, loading, hasPermission, signIn, signOut, refreshPermissions, setLocalPermissions }}>
       {children}
     </AuthContext.Provider>
   );
