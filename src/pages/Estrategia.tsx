@@ -35,6 +35,10 @@ function PaidPlanGate() {
 export default function Estrategia() {
   const { isFreePlan } = useAuth();
   if (isFreePlan) return <PaidPlanGate />;
+  return <EstrategiaInner />;
+}
+
+function EstrategiaInner() {
   const {
     filtered, loading, error, filters, setFilters,
     uniqueRegiones, uniqueEstados, uniqueSectores, uniqueProvincias, uniqueComunas, kpis,
