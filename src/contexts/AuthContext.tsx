@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('usuarios_perfiles')
-        .select('permisos, activo, regiones_permitidas')
+        .select('plan, activo')
         .eq('id', userId)
         .single();
 
@@ -105,19 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const perms = (data.permisos || []) as string[];
-      if (perms.length === 0 && applyOptimisticPermissions(userId)) return;
+      // Derive permissions and allowed regions from the user's `plan`.
+      // - admin: all permissions, all regions (empty array = unrestricted)
+      // - free (and any other non-admin plan): all permissions EXCEPT user creation
+      //   and innovation dashboard; restricted to Tarapacá region.
+      const plan = (data.plan || 'free').toString().toLowerCase();
+      const { permissions: derivedPerms, regiones: derivedRegiones } = getPlanAccess(plan);
 
-      if (perms.includes('all')) {
-        setPermissions(ALL_PERMISSIONS);
-      } else {
-        setPermissions(perms.filter((p): p is Permission => ALL_PERMISSIONS.includes(p as Permission)));
-      }
+      setPermissions(derivedPerms);
+      setRegionesPermitidas(derivedRegiones);
       optimisticPermissionsRef.current = null;
-
-      // Set allowed regions (empty array = all regions allowed)
-      const regiones = (data.regiones_permitidas || []) as string[];
-      setRegionesPermitidas(regiones);
 
       // Update ultima_conexion
       await supabase
