@@ -75,10 +75,11 @@ interface IntelligenceProjectsProps {
 
 export default function IntelligenceProjects({ onFiltersChange, externalSearchText, selectedRegion, selectedComunas, resetKey, onHasFiltersChange }: IntelligenceProjectsProps) {
   const { proyectos, loading, estadosUnicos, sectoresUnicos, inversionStats } = useProyectos(selectedRegion, selectedComunas);
-  const { hasPermission } = useAuth();
+  const { hasPermission, isFreePlan } = useAuth();
   const { trackModule } = useSessionTracking();
   const navigate = useNavigate();
   const showAnalyzer = hasPermission('analizador_proyectos');
+  const lockEstadoSector = isFreePlan;
   
   const [isOpen, setIsOpen] = useState(true);
 
