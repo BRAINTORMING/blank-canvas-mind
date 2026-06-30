@@ -148,9 +148,15 @@ export default function RadialAnalysisControl({ selectedRegion }: RadialAnalysis
                     ⚠ Selecciona una región en el filtro "Regiones y Comunas" para continuar.
                   </p>
                 )}
-                {active && hasRegion && !center && (
+                {active && hasRegion && !center && !pointLocked && (
                   <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                     Haz clic en el mapa para fijar el punto central.
+                  </p>
+                )}
+                {active && pointLocked && !center && (
+                  <p className="text-[10px] text-amber-600 mt-1 leading-tight inline-flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Posicionar el punto requiere un Plan de Pago.
                   </p>
                 )}
               </div>
