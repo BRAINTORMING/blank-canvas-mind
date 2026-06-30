@@ -253,8 +253,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRegionesPermitidas(nextRegiones);
   };
 
+  const isFreePlan = (plan ?? 'free').toLowerCase() !== 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, session, permissions, regionesPermitidas, loading, hasPermission, signIn, signOut, refreshPermissions, setLocalPermissions }}>
+    <AuthContext.Provider value={{ user, session, permissions, regionesPermitidas, plan, isFreePlan, loading, hasPermission, signIn, signOut, refreshPermissions, setLocalPermissions }}>
       {children}
     </AuthContext.Provider>
   );
