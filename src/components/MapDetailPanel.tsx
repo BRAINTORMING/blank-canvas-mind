@@ -39,17 +39,33 @@ function titleFor(p: DetailPayload): string {
   }
 }
 
-function badgeFor(p: DetailPayload): string | null {
+function badgeFor(p: DetailPayload, hideProyectoEstado = false): string | null {
   const d = p.data || {};
   switch (p.type) {
     case 'activo': return d.capa || null;
-    case 'proyecto': return d.estadoProyecto || null;
+    case 'proyecto': return hideProyectoEstado ? null : (d.estadoProyecto || null);
     case 'poligono': return d.capa || null;
     case 'planRegulador': return 'Plan Regulador';
     case 'comuna': return 'Comuna';
     case 'pric': return 'PRIC';
     default: return null;
   }
+}
+
+/** Inline "locked" placeholder rendered in place of sensitive proyecto fields. */
+function LockedValue({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Desbloquee con un Plan de Pago"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 transition-colors select-none"
+      style={{ filter: 'blur(0.5px)' }}
+    >
+      <Lock className="h-3 w-3" />
+      <span className="tracking-wider">••••••••</span>
+    </button>
+  );
 }
 
 interface RowProps { label: string; value?: React.ReactNode }
