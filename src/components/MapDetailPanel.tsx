@@ -351,7 +351,7 @@ export default function MapDetailPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pb-4 pt-1">
-        <Body payload={p} />
+        <Body payload={p} lockProyectoFields={lockProyectoFields} />
       </div>
 
       {/* Resize handle */}
