@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [regionesPermitidas, setRegionesPermitidas] = useState<string[]>([]);
+  const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const permissionRequestRef = useRef(0);
   const optimisticPermissionsRef = useRef<{
