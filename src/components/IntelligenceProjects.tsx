@@ -149,10 +149,12 @@ export default function IntelligenceProjects({ onFiltersChange, externalSearchTe
   const impactoFiltrado = proyectosFiltrados.reduce((sum, p) => sum + (p.inversion || 0), 0);
 
   const toggleEstado = (estado: string) => {
+    if (lockEstadoSector) { showPaidLockToast(); return; }
     setSelectedEstados(prev => prev.includes(estado) ? prev.filter(e => e !== estado) : [...prev, estado]);
   };
 
   const toggleSector = (sector: string) => {
+    if (lockEstadoSector) { showPaidLockToast(); return; }
     setSelectedSectores(prev => prev.includes(sector) ? prev.filter(s => s !== sector) : [...prev, sector]);
   };
 
