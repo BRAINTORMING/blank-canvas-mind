@@ -184,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           optimisticPermissionsRef.current = null;
           setPermissions([]);
           setRegionesPermitidas([]);
+          setPlan(null);
         }
       }
     );
