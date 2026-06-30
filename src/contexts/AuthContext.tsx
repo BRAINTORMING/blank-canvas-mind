@@ -82,6 +82,8 @@ interface AuthContextType {
   session: Session | null;
   permissions: Permission[];
   regionesPermitidas: string[];
+  plan: string | null;
+  isFreePlan: boolean;
   loading: boolean;
   hasPermission: (permission: Permission) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
