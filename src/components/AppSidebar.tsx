@@ -4,6 +4,7 @@ import geodudexLogo from "@/assets/gdudex-logo.svg";
 import { type PoligonoData, type PlanReguladorData } from "./ActivosLayerControl";
 import IntelligenceProjects from "./IntelligenceProjects";
 import RadialAnalysisControl from "./RadialAnalysisControl";
+import LogisticsIntelligence from "./LogisticsIntelligence";
 import CorredorBioceanico from "./CorredorBioceanico";
 import { type Proyecto } from "@/hooks/useProyectos";
 import { cn } from "@/lib/utils";
@@ -180,8 +181,9 @@ export function AppSidebar({
                   <SidebarSectionHeader title="Herramientas de análisis territorial">
                     Inteligencia
                   </SidebarSectionHeader>
-                  <div className="px-1 pt-1">
+                  <div className="px-1 pt-1 space-y-1">
                     <RadialAnalysisControl selectedRegion={selectedRegion} />
+                    <LogisticsIntelligence />
                   </div>
                 </>
               )}

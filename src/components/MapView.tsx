@@ -2407,6 +2407,102 @@ export default function MapView({
     }
   }
 
+  // ── Inteligencia Logística: infrastructure markers ──
+  // Listens for `logistics:set` events dispatched by LogisticsIntelligence
+  // and renders category-colored markers on the map. Fully self-contained
+  // so it doesn't interfere with existing filter/marker logic.
+  useEffect(() => {
+    if (!map.current) return;
+    let markers: mapboxgl.Marker[] = [];
+    const CATEGORY_COLORS: Record<string, string> = {
+      puertos: '#1E3A8A',
+      parques_industriales: '#7C3AED',
+      centros_logisticos: '#16A34A',
+      zonas_pric: '#F97316',
+    };
+    const CATEGORY_LABELS: Record<string, string> = {
+      puertos: 'Puerto',
+      parques_industriales: 'Parque Industrial',
+      centros_logisticos: 'Centro Logístico',
+      zonas_pric: 'Zona PRIC',
+    };
+
+    const clear = () => {
+      markers.forEach(m => m.remove());
+      markers = [];
+    };
+
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { active: string[] } | undefined;
+      const active = detail?.active || [];
+      clear();
+      if (!map.current || active.length === 0) return;
+
+      const {
+        LOGISTICS_PORTS,
+        LOGISTICS_PARQUES,
+        LOGISTICS_CENTROS,
+        LOGISTICS_PRIC,
+      } = await import('@/lib/logisticsData');
+
+      const groups: Record<string, { points: typeof LOGISTICS_PORTS }> = {
+        puertos: { points: LOGISTICS_PORTS },
+        parques_industriales: { points: LOGISTICS_PARQUES },
+        centros_logisticos: { points: LOGISTICS_CENTROS },
+        zonas_pric: { points: LOGISTICS_PRIC },
+      };
+
+      const bounds = new mapboxgl.LngLatBounds();
+      active.forEach(catId => {
+        const group = groups[catId];
+        if (!group) return;
+        const color = CATEGORY_COLORS[catId];
+        const label = CATEGORY_LABELS[catId];
+        group.points.forEach(pt => {
+          const el = document.createElement('div');
+          el.style.cssText = `
+            width:22px;height:22px;border-radius:50%;
+            background:${color};border:2px solid #fff;
+            box-shadow:0 0 0 3px ${color}33, 0 2px 6px rgba(0,0,0,0.35);
+            display:flex;align-items:center;justify-content:center;
+            color:#fff;font-size:11px;font-weight:700;cursor:pointer;
+            transition:transform .15s ease;
+          `;
+          el.title = `${label}: ${pt.name}`;
+          el.textContent = label.charAt(0);
+          el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15)'; });
+          el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+
+          const popupHtml = `
+            <div style="font-family:inherit;min-width:180px;padding:2px 4px;">
+              <div style="font-size:10px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${label}</div>
+              <div style="font-size:13px;font-weight:600;color:#111827;line-height:1.2;">${pt.name}</div>
+              ${pt.description ? `<div style="font-size:11px;color:#6B7280;margin-top:4px;line-height:1.35;">${pt.description}</div>` : ''}
+              <div style="font-size:10px;color:#9CA3AF;margin-top:6px;font-family:monospace;">${pt.lat.toFixed(4)}°, ${pt.lng.toFixed(4)}°</div>
+            </div>
+          `;
+          const popup = new mapboxgl.Popup({ offset: 16, closeButton: true }).setHTML(popupHtml);
+          const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([pt.lng, pt.lat])
+            .setPopup(popup)
+            .addTo(map.current!);
+          markers.push(marker);
+          bounds.extend([pt.lng, pt.lat]);
+        });
+      });
+
+      if (!bounds.isEmpty() && map.current) {
+        map.current.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 900 });
+      }
+    };
+
+    window.addEventListener('logistics:set', handler);
+    return () => {
+      window.removeEventListener('logistics:set', handler);
+      clear();
+    };
+  }, []);
+
   return (
     <div className="w-full h-full relative">
       <div ref={mapContainer} className="absolute inset-0" />
