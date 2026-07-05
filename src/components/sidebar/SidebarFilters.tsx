@@ -845,10 +845,10 @@ export function RegionesYComunasFixed() {
                 className="absolute left-0 right-0 mt-1 z-[9999] bg-popover border border-border rounded-[13px] shadow-lg max-h-[280px] overflow-y-auto p-1"
               >
                 <button
-                  type="button"
-                  onClick={() => (isAllSelected ? deselectAllComunas() : selectAllComunas())}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-[10px] hover:bg-[#EFF6FF]"
-                >
+  type="button"
+  onClick={() => (isAllSelected ? deselectAllComunas() : selectAllComunas())}
+  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-[10px] hover:bg-[#EFF6FF] transition-colors duration-150"
+>
                   <Checkbox checked={isAllSelected} className="h-3.5 w-3.5 pointer-events-none" />
                   <span className="font-medium">Todas las comunas</span>
                 </button>
@@ -857,12 +857,12 @@ export function RegionesYComunasFixed() {
                   const id = c.comuna.toLowerCase().replace(/\s+/g, "-");
                   const checked = selectedComunas.includes(id);
                   return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => toggleComuna(id)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-[10px] hover:bg-[#EFF6FF]"
-                    >
+                   <button
+  key={id}
+  type="button"
+  onClick={() => toggleComuna(id)}
+  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-[10px] hover:bg-[#EFF6FF] transition-colors duration-150"
+>
                       <Checkbox checked={checked} className="h-3.5 w-3.5 pointer-events-none" />
                       <span className="truncate">{c.comuna}</span>
                     </button>
