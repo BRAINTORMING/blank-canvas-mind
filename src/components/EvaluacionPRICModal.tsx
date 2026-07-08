@@ -576,7 +576,9 @@ export default function EvaluacionPRICModal({
                 {errors.alturaMaxima && <p className="text-[10px] text-destructive">{errors.alturaMaxima}</p>}
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-muted-foreground">D. Sup. útil <span className="text-destructive">*</span></span>
+                <span className="text-[10px] text-muted-foreground">
+                  D. Sup. útil {requiereSuperficieUtil ? <span className="text-destructive">*</span> : <span className="text-muted-foreground/60">(opcional)</span>}
+                </span>
                 <div className="relative">
                   <Input type="number" value={superficieUtilConstruida} onChange={(e) => setSuperficieUtilConstruida(e.target.value)} placeholder="m²" min="0" step="0.01" className={cn(inputClass, "pr-8", errors.superficieUtilConstruida && "border-destructive")} />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">m²</span>
