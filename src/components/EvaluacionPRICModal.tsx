@@ -501,8 +501,26 @@ export default function EvaluacionPRICModal({
                 hasError={!!errors.categoria}
               />
               {errors.categoria && <p className="text-[10px] text-destructive">{errors.categoria}</p>}
-            </div>
           </div>
+
+          {/* Destino específico (condicional) */}
+          {(isLoadingDestinos || destinosDisponibles.length > 0) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Destino específico <span className="text-destructive">*</span>
+              </Label>
+              <TooltipSelect
+                value={destinoEspecifico}
+                onChange={setDestinoEspecifico}
+                items={destinosDisponibles}
+                descriptions={{}}
+                placeholder={isLoadingDestinos ? "Cargando..." : "Seleccione destino"}
+                disabled={isLoadingDestinos || destinosDisponibles.length === 0}
+                hasError={!!errors.destinoEspecifico}
+              />
+              {errors.destinoEspecifico && <p className="text-[10px] text-destructive">{errors.destinoEspecifico}</p>}
+            </div>
+          )}
 
           {/* Lat + Lng + Sup */}
           <div className="grid grid-cols-3 gap-3">
