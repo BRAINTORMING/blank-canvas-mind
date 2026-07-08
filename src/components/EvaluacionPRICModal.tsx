@@ -501,7 +501,10 @@ export default function EvaluacionPRICModal({
                 hasError={!!errors.categoria}
               />
               {errors.categoria && <p className="text-[10px] text-destructive">{errors.categoria}</p>}
+            </div>
           </div>
+
+
 
           {/* Destino específico (condicional) */}
           {(isLoadingDestinos || destinosDisponibles.length > 0) && (
