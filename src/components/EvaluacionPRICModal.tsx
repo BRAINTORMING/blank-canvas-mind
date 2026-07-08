@@ -272,8 +272,17 @@ export default function EvaluacionPRICModal({
     (async () => {
       setIsLoadingDestinos(true);
       try {
-        const { data, error } = await externalSupabase
-          .from('estacionamientos_factor' as never)
+        const sb = externalSupabase as unknown as {
+          from: (t: string) => {
+            select: (c: string) => {
+              eq: (col: string, val: string) => {
+                not: (col: string, op: string, val: null) => Promise<{ data: unknown; error: unknown }>
+              }
+            }
+          }
+        };
+        const { data, error } = await sb
+          .from('estacionamientos_factor')
           .select('destino_especifico')
           .eq('categoria_proyecto', categoria)
           .not('destino_especifico', 'is', null);
@@ -293,7 +302,6 @@ export default function EvaluacionPRICModal({
     return () => { cancelled = true; };
   }, [categoria]);
 
-
   const validateLatitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -90 && num <= 90; };
   const validateLongitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -180 && num <= 180; };
   const validatePositiveNumber = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num > 0; };
@@ -304,6 +312,7 @@ export default function EvaluacionPRICModal({
     else if (nombreProyecto.length > 50) newErrors.nombreProyecto = 'Máximo 50 caracteres';
     if (!tipoProyecto) newErrors.tipoProyecto = 'Requerido';
     if (!categoria) newErrors.categoria = 'Requerido';
+    if (destinosDisponibles.length > 0 && !destinoEspecifico) newErrors.destinoEspecifico = 'Requerido';
     if (!latitud.trim()) newErrors.latitud = 'Requerido';
     else if (!validateLatitud(latitud)) newErrors.latitud = 'Latitud inválida (-90 a 90)';
     if (!longitud.trim()) newErrors.longitud = 'Requerido';
@@ -316,42 +325,93 @@ export default function EvaluacionPRICModal({
     else if (!validatePositiveNumber(superficieOcupacionSuelo)) newErrors.superficieOcupacionSuelo = 'Valor inválido';
     if (!alturaMaxima.trim()) newErrors.alturaMaxima = 'Requerido';
     else if (!validatePositiveNumber(alturaMaxima)) newErrors.alturaMaxima = 'Valor inválido';
-    if (!superficieUtilConstruida.trim()) newErrors.superficieUtilConstruida = 'Requerido';
-    else if (!validatePositiveNumber(superficieUtilConstruida)) newErrors.superficieUtilConstruida = 'Valor inválido';
+    if (requiereSuperficieUtil) {
+      if (!superficieUtilConstruida.trim()) newErrors.superficieUtilConstruida = 'Requerido';
+      else if (!validatePositiveNumber(superficieUtilConstruida)) newErrors.superficieUtilConstruida = 'Valor inválido';
+    } else if (superficieUtilConstruida.trim() && !validatePositiveNumber(superficieUtilConstruida)) {
+      newErrors.superficieUtilConstruida = 'Valor inválido';
+    }
     if (descripcion.length > 500) newErrors.descripcion = 'Máximo 500 caracteres';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
-    onSubmit({
-      nombreProyecto: nombreProyecto.trim(), tipoProyecto, categoria,
-      latitud: parseFloat(latitud), longitud: parseFloat(longitud),
-      superficiePredio: parseFloat(superficiePredio),
-      superficieTotalConstruir: parseFloat(superficieTotalConstruir),
-      superficieOcupacionSuelo: parseFloat(superficieOcupacionSuelo),
-      alturaMaxima: parseFloat(alturaMaxima),
-      superficieUtilConstruida: parseFloat(superficieUtilConstruida),
-      descripcion: descripcion.trim()
-    });
+    setResultado(null);
+    setResultadoError(null);
+
+    if (!externalSupabase) {
+      setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+      return;
+    }
+
+    setIsEvaluando(true);
+    try {
+      const sb = externalSupabase as unknown as {
+        rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>
+      };
+      const { data, error } = await sb.rpc('evaluar_proyecto_pric', {
+        p_lon: parseFloat(longitud),
+        p_lat: parseFloat(latitud),
+        p_categoria_proyecto: categoria,
+        p_destino_especifico: destinoEspecifico || null,
+        p_superficie_terreno: parseFloat(superficiePredio),
+        p_superficie_edificada: parseFloat(superficieTotalConstruir),
+        p_huella_basal: parseFloat(superficieOcupacionSuelo),
+        p_altura_proyecto: parseFloat(alturaMaxima),
+        p_superficie_util: superficieUtilConstruida ? parseFloat(superficieUtilConstruida) : null,
+      });
+
+      if (error) {
+        console.error('RPC evaluar_proyecto_pric error:', error);
+        setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+        return;
+      }
+      setResultado((data as EvaluacionResultado) || {});
+
+      // Notify parent (for tracking/telemetry) without blocking the UI.
+      try {
+        onSubmit({
+          nombreProyecto: nombreProyecto.trim(), tipoProyecto, categoria,
+          latitud: parseFloat(latitud), longitud: parseFloat(longitud),
+          superficiePredio: parseFloat(superficiePredio),
+          superficieTotalConstruir: parseFloat(superficieTotalConstruir),
+          superficieOcupacionSuelo: parseFloat(superficieOcupacionSuelo),
+          alturaMaxima: parseFloat(alturaMaxima),
+          superficieUtilConstruida: superficieUtilConstruida ? parseFloat(superficieUtilConstruida) : 0,
+          descripcion: descripcion.trim(),
+        });
+      } catch { /* ignore */ }
+    } catch (err) {
+      console.error('Error evaluando proyecto:', err);
+      setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+    } finally {
+      setIsEvaluando(false);
+    }
   };
 
   useEffect(() => {
     if (!open) {
       setNombreProyecto(''); setTipoProyecto(''); setCategoria('');
+      setDestinoEspecifico(''); setDestinosDisponibles([]);
       setLatitud(''); setLongitud(''); setSuperficiePredio('');
       setSuperficieTotalConstruir(''); setSuperficieOcupacionSuelo('');
       setAlturaMaxima(''); setSuperficieUtilConstruida('');
       setDescripcion(''); setErrors({});
+      setResultado(null); setResultadoError(null);
     }
   }, [open]);
 
   const isFormComplete = Boolean(
     nombreProyecto.trim() && tipoProyecto && categoria && latitud.trim() && longitud.trim() &&
     superficiePredio.trim() && superficieTotalConstruir.trim() && superficieOcupacionSuelo.trim() &&
-    alturaMaxima.trim() && superficieUtilConstruida.trim()
+    alturaMaxima.trim() &&
+    (!requiereSuperficieUtil || superficieUtilConstruida.trim()) &&
+    (destinosDisponibles.length === 0 || destinoEspecifico)
   );
+
+  const busy = isLoading || isEvaluando;
 
   if (!open) return null;
 
