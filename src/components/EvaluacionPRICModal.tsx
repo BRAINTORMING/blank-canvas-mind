@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileSearch, X, ChevronDown } from 'lucide-react';
+import { Loader2, FileSearch, X, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,35 @@ interface TipoProyectoPRIC {
   tipo: string;
   categoria: string;
   descripcion: string | null;
+  requiere_superficie_util?: boolean | null;
+}
+
+type DictamenTipo =
+  | 'viable'
+  | 'viable_condicionado'
+  | 'no_viable'
+  | 'requiere_revision_manual'
+  | 'sin_zona_identificada_en_este_instrumento'
+  | string;
+
+interface DictamenInstrumento {
+  instrumento: string;
+  dictamen: DictamenTipo;
+  motivos?: string[];
+  zona_uso_suelo?: string | null;
+  riesgos_detectados?: Array<{ capa: string }>;
+  patrimonio_detectado?: Array<{ capa: string }>;
+}
+
+interface EvaluacionResultado {
+  resuelto?: boolean;
+  motivo?: string;
+  cobertura?: string;
+  comuna?: string;
+  region?: string;
+  dictamenes_por_instrumento?: DictamenInstrumento[];
+  estacionamientos?: { cupos_requeridos?: number; nota?: string } | null;
+  restricciones_ambientales_universales?: Array<{ capa: string }>;
 }
 
 export interface EvaluacionPRICData {
@@ -171,6 +200,9 @@ export default function EvaluacionPRICModal({
   const [nombreProyecto, setNombreProyecto] = useState('');
   const [tipoProyecto, setTipoProyecto] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [destinoEspecifico, setDestinoEspecifico] = useState('');
+  const [destinosDisponibles, setDestinosDisponibles] = useState<string[]>([]);
+  const [isLoadingDestinos, setIsLoadingDestinos] = useState(false);
   const [latitud, setLatitud] = useState('');
   const [longitud, setLongitud] = useState('');
   const [superficiePredio, setSuperficiePredio] = useState('');
@@ -179,25 +211,28 @@ export default function EvaluacionPRICModal({
   const [alturaMaxima, setAlturaMaxima] = useState('');
   const [superficieUtilConstruida, setSuperficieUtilConstruida] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  
+
   const [tiposProyecto, setTiposProyecto] = useState<TipoProyectoPRIC[]>([]);
   const [isLoadingTipos, setIsLoadingTipos] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [isEvaluando, setIsEvaluando] = useState(false);
+  const [resultado, setResultado] = useState<EvaluacionResultado | null>(null);
+  const [resultadoError, setResultadoError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTipos = async () => {
       if (!externalSupabase || !open) return;
       setIsLoadingTipos(true);
       try {
-        const { data, error } = await externalSupabase
-          .from('tipo_proyecto_pric')
-          .select('tipo, categoria, descripcion');
+        const sb = externalSupabase as unknown as { from: (t: string) => { select: (c: string) => Promise<{ data: unknown; error: unknown }> } };
+        const { data, error } = await sb.from('tipo_proyecto_pric').select('tipo, categoria, descripcion, requiere_superficie_util');
         if (error) {
           console.error('Error fetching tipos proyecto:', error);
           toast({ title: "Error", description: "No se pudieron cargar los tipos de proyecto", variant: "destructive" });
           return;
         }
-        setTiposProyecto(data || []);
+        setTiposProyecto((data as TipoProyectoPRIC[]) || []);
       } catch (err) {
         console.error('Error:', err);
       } finally {
@@ -220,7 +255,52 @@ export default function EvaluacionPRICModal({
       .sort();
   }, [tipoProyecto, tiposProyecto]);
 
-  useEffect(() => { setCategoria(''); }, [tipoProyecto]);
+  const requiereSuperficieUtil = useMemo(() => {
+    if (!tipoProyecto || !categoria) return false;
+    const match = tiposProyecto.find(t => t.tipo === tipoProyecto && t.categoria === categoria);
+    return Boolean(match?.requiere_superficie_util);
+  }, [tipoProyecto, categoria, tiposProyecto]);
+
+  useEffect(() => { setCategoria(''); setDestinoEspecifico(''); setDestinosDisponibles([]); }, [tipoProyecto]);
+
+  // Load destinos específicos when categoria changes
+  useEffect(() => {
+    setDestinoEspecifico('');
+    setDestinosDisponibles([]);
+    if (!externalSupabase || !categoria) return;
+    let cancelled = false;
+    (async () => {
+      setIsLoadingDestinos(true);
+      try {
+        const sb = externalSupabase as unknown as {
+          from: (t: string) => {
+            select: (c: string) => {
+              eq: (col: string, val: string) => {
+                not: (col: string, op: string, val: null) => Promise<{ data: unknown; error: unknown }>
+              }
+            }
+          }
+        };
+        const { data, error } = await sb
+          .from('estacionamientos_factor')
+          .select('destino_especifico')
+          .eq('categoria_proyecto', categoria)
+          .not('destino_especifico', 'is', null);
+        if (cancelled) return;
+        if (error) {
+          console.error('Error fetching destinos:', error);
+          return;
+        }
+        const unique = Array.from(new Set(((data as Array<{ destino_especifico: string | null }>) || [])
+          .map(r => r.destino_especifico)
+          .filter((v): v is string => Boolean(v))));
+        setDestinosDisponibles(unique.sort());
+      } finally {
+        if (!cancelled) setIsLoadingDestinos(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [categoria]);
 
   const validateLatitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -90 && num <= 90; };
   const validateLongitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -180 && num <= 180; };
@@ -232,6 +312,7 @@ export default function EvaluacionPRICModal({
     else if (nombreProyecto.length > 50) newErrors.nombreProyecto = 'Máximo 50 caracteres';
     if (!tipoProyecto) newErrors.tipoProyecto = 'Requerido';
     if (!categoria) newErrors.categoria = 'Requerido';
+    if (destinosDisponibles.length > 0 && !destinoEspecifico) newErrors.destinoEspecifico = 'Requerido';
     if (!latitud.trim()) newErrors.latitud = 'Requerido';
     else if (!validateLatitud(latitud)) newErrors.latitud = 'Latitud inválida (-90 a 90)';
     if (!longitud.trim()) newErrors.longitud = 'Requerido';
@@ -244,42 +325,93 @@ export default function EvaluacionPRICModal({
     else if (!validatePositiveNumber(superficieOcupacionSuelo)) newErrors.superficieOcupacionSuelo = 'Valor inválido';
     if (!alturaMaxima.trim()) newErrors.alturaMaxima = 'Requerido';
     else if (!validatePositiveNumber(alturaMaxima)) newErrors.alturaMaxima = 'Valor inválido';
-    if (!superficieUtilConstruida.trim()) newErrors.superficieUtilConstruida = 'Requerido';
-    else if (!validatePositiveNumber(superficieUtilConstruida)) newErrors.superficieUtilConstruida = 'Valor inválido';
+    if (requiereSuperficieUtil) {
+      if (!superficieUtilConstruida.trim()) newErrors.superficieUtilConstruida = 'Requerido';
+      else if (!validatePositiveNumber(superficieUtilConstruida)) newErrors.superficieUtilConstruida = 'Valor inválido';
+    } else if (superficieUtilConstruida.trim() && !validatePositiveNumber(superficieUtilConstruida)) {
+      newErrors.superficieUtilConstruida = 'Valor inválido';
+    }
     if (descripcion.length > 500) newErrors.descripcion = 'Máximo 500 caracteres';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
-    onSubmit({
-      nombreProyecto: nombreProyecto.trim(), tipoProyecto, categoria,
-      latitud: parseFloat(latitud), longitud: parseFloat(longitud),
-      superficiePredio: parseFloat(superficiePredio),
-      superficieTotalConstruir: parseFloat(superficieTotalConstruir),
-      superficieOcupacionSuelo: parseFloat(superficieOcupacionSuelo),
-      alturaMaxima: parseFloat(alturaMaxima),
-      superficieUtilConstruida: parseFloat(superficieUtilConstruida),
-      descripcion: descripcion.trim()
-    });
+    setResultado(null);
+    setResultadoError(null);
+
+    if (!externalSupabase) {
+      setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+      return;
+    }
+
+    setIsEvaluando(true);
+    try {
+      const sb = externalSupabase as unknown as {
+        rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>
+      };
+      const { data, error } = await sb.rpc('evaluar_proyecto_pric', {
+        p_lon: parseFloat(longitud),
+        p_lat: parseFloat(latitud),
+        p_categoria_proyecto: categoria,
+        p_destino_especifico: destinoEspecifico || null,
+        p_superficie_terreno: parseFloat(superficiePredio),
+        p_superficie_edificada: parseFloat(superficieTotalConstruir),
+        p_huella_basal: parseFloat(superficieOcupacionSuelo),
+        p_altura_proyecto: parseFloat(alturaMaxima),
+        p_superficie_util: superficieUtilConstruida ? parseFloat(superficieUtilConstruida) : null,
+      });
+
+      if (error) {
+        console.error('RPC evaluar_proyecto_pric error:', error);
+        setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+        return;
+      }
+      setResultado((data as EvaluacionResultado) || {});
+
+      // Notify parent (for tracking/telemetry) without blocking the UI.
+      try {
+        onSubmit({
+          nombreProyecto: nombreProyecto.trim(), tipoProyecto, categoria,
+          latitud: parseFloat(latitud), longitud: parseFloat(longitud),
+          superficiePredio: parseFloat(superficiePredio),
+          superficieTotalConstruir: parseFloat(superficieTotalConstruir),
+          superficieOcupacionSuelo: parseFloat(superficieOcupacionSuelo),
+          alturaMaxima: parseFloat(alturaMaxima),
+          superficieUtilConstruida: superficieUtilConstruida ? parseFloat(superficieUtilConstruida) : 0,
+          descripcion: descripcion.trim(),
+        });
+      } catch { /* ignore */ }
+    } catch (err) {
+      console.error('Error evaluando proyecto:', err);
+      setResultadoError('Ocurrió un error al evaluar el proyecto, intenta nuevamente');
+    } finally {
+      setIsEvaluando(false);
+    }
   };
 
   useEffect(() => {
     if (!open) {
       setNombreProyecto(''); setTipoProyecto(''); setCategoria('');
+      setDestinoEspecifico(''); setDestinosDisponibles([]);
       setLatitud(''); setLongitud(''); setSuperficiePredio('');
       setSuperficieTotalConstruir(''); setSuperficieOcupacionSuelo('');
       setAlturaMaxima(''); setSuperficieUtilConstruida('');
       setDescripcion(''); setErrors({});
+      setResultado(null); setResultadoError(null);
     }
   }, [open]);
 
   const isFormComplete = Boolean(
     nombreProyecto.trim() && tipoProyecto && categoria && latitud.trim() && longitud.trim() &&
     superficiePredio.trim() && superficieTotalConstruir.trim() && superficieOcupacionSuelo.trim() &&
-    alturaMaxima.trim() && superficieUtilConstruida.trim()
+    alturaMaxima.trim() &&
+    (!requiereSuperficieUtil || superficieUtilConstruida.trim()) &&
+    (destinosDisponibles.length === 0 || destinoEspecifico)
   );
+
+  const busy = isLoading || isEvaluando;
 
   if (!open) return null;
 
@@ -372,6 +504,27 @@ export default function EvaluacionPRICModal({
             </div>
           </div>
 
+
+
+          {/* Destino específico (condicional) */}
+          {(isLoadingDestinos || destinosDisponibles.length > 0) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Destino específico <span className="text-destructive">*</span>
+              </Label>
+              <TooltipSelect
+                value={destinoEspecifico}
+                onChange={setDestinoEspecifico}
+                items={destinosDisponibles}
+                descriptions={{}}
+                placeholder={isLoadingDestinos ? "Cargando..." : "Seleccione destino"}
+                disabled={isLoadingDestinos || destinosDisponibles.length === 0}
+                hasError={!!errors.destinoEspecifico}
+              />
+              {errors.destinoEspecifico && <p className="text-[10px] text-destructive">{errors.destinoEspecifico}</p>}
+            </div>
+          )}
+
           {/* Lat + Lng + Sup */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
@@ -423,7 +576,9 @@ export default function EvaluacionPRICModal({
                 {errors.alturaMaxima && <p className="text-[10px] text-destructive">{errors.alturaMaxima}</p>}
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-muted-foreground">D. Sup. útil <span className="text-destructive">*</span></span>
+                <span className="text-[10px] text-muted-foreground">
+                  D. Sup. útil {requiereSuperficieUtil ? <span className="text-destructive">*</span> : <span className="text-muted-foreground/60">(opcional)</span>}
+                </span>
                 <div className="relative">
                   <Input type="number" value={superficieUtilConstruida} onChange={(e) => setSuperficieUtilConstruida(e.target.value)} placeholder="m²" min="0" step="0.01" className={cn(inputClass, "pr-8", errors.superficieUtilConstruida && "border-destructive")} />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">m²</span>
@@ -452,20 +607,24 @@ export default function EvaluacionPRICModal({
               <span className="text-[10px] text-muted-foreground ml-auto">{descripcion.length}/500</span>
             </div>
           </div>
+
+          {/* Resultado de la evaluación */}
+          {(resultado || resultadoError) && (
+            <ResultadoSection resultado={resultado} error={resultadoError} />
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 flex justify-center flex-shrink-0" style={{ borderTop: '1px solid hsl(var(--border))' }}>
           <Button
             onClick={handleSubmit}
-            disabled={!isFormComplete || isLoading}
+            disabled={!isFormComplete || busy}
             className="px-8 py-2 h-10 min-w-[140px] rounded-[14px] font-display font-semibold text-sm text-white transition-all duration-[140ms] hover:-translate-y-0.5 disabled:opacity-40"
             style={{
               background: 'hsl(var(--primary))',
-              
             }}
           >
-            {isLoading ? (
+            {busy ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Evaluando...</>
             ) : (
               'Evaluar'
@@ -473,6 +632,125 @@ export default function EvaluacionPRICModal({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function dictamenStyle(d: DictamenTipo): { label: string; className: string; Icon: typeof CheckCircle2 } {
+  switch (d) {
+    case 'viable':
+      return { label: 'Viable', className: 'bg-emerald-100 text-emerald-800 border-emerald-200', Icon: CheckCircle2 };
+    case 'viable_condicionado':
+      return { label: 'Viable condicionado', className: 'bg-amber-100 text-amber-800 border-amber-200', Icon: Info };
+    case 'no_viable':
+      return { label: 'No viable', className: 'bg-red-100 text-red-800 border-red-200', Icon: XCircle };
+    case 'requiere_revision_manual':
+      return { label: 'Requiere revisión manual', className: 'bg-gray-100 text-gray-800 border-gray-200', Icon: AlertTriangle };
+    case 'sin_zona_identificada_en_este_instrumento':
+      return { label: 'Sin datos cargados para este instrumento todavía', className: 'bg-gray-100 text-gray-600 border-gray-200', Icon: HelpCircle };
+    default:
+      return { label: String(d), className: 'bg-gray-100 text-gray-700 border-gray-200', Icon: Info };
+  }
+}
+
+function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado | null; error: string | null }) {
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+        <p className="text-xs font-semibold text-destructive flex items-center gap-2">
+          <XCircle className="h-4 w-4" /> {error}
+        </p>
+      </div>
+    );
+  }
+  if (!resultado) return null;
+
+  if (resultado.resuelto === false) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" /> No se pudo ubicar el punto ingresado
+        </p>
+        {resultado.motivo && <p className="text-[11px] text-amber-700 mt-1">{resultado.motivo}</p>}
+      </div>
+    );
+  }
+
+  if (resultado.cobertura === 'sin_alcance') {
+    return (
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <p className="text-xs font-semibold text-blue-800 flex items-center gap-2">
+          <Info className="h-4 w-4" /> Esta zona todavía no está cubierta por el piloto de Gdudex
+        </p>
+      </div>
+    );
+  }
+
+  const dictamenes = resultado.dictamenes_por_instrumento || [];
+  const cupos = resultado.estacionamientos?.cupos_requeridos;
+  const restriccionesAmb = resultado.restricciones_ambientales_universales || [];
+
+  return (
+    <div className="space-y-3 pt-2 border-t border-border">
+      <div>
+        <h3 className="text-sm font-display font-semibold text-foreground">Resultado de la evaluación</h3>
+        {(resultado.comuna || resultado.region) && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Comuna: {resultado.comuna || '—'} — Región: {resultado.region || '—'}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {dictamenes.map((d, idx) => {
+          const style = dictamenStyle(d.dictamen);
+          const Icon = style.Icon;
+          const riesgos = [...(d.riesgos_detectados || []), ...(d.patrimonio_detectado || [])];
+          return (
+            <div key={idx} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">{d.instrumento}</p>
+                <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border", style.className)}>
+                  <Icon className="h-3 w-3" /> {style.label}
+                </span>
+              </div>
+              {d.zona_uso_suelo && (
+                <p className="text-[11px] text-muted-foreground">Zona: {d.zona_uso_suelo}</p>
+              )}
+              {d.motivos && d.motivos.length > 0 && (
+                <ul className="text-[11px] text-foreground/80 list-disc pl-4 space-y-0.5">
+                  {d.motivos.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+              )}
+              {riesgos.length > 0 && (
+                <div className="mt-1">
+                  <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Restricciones detectadas
+                  </p>
+                  <ul className="text-[11px] text-foreground/80 list-disc pl-4">
+                    {riesgos.map((r, i) => <li key={i}>{r.capa}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {typeof cupos === 'number' && (
+        <div className="text-xs text-foreground bg-secondary/60 rounded-lg px-3 py-2">
+          Estacionamientos requeridos: <span className="font-semibold">{cupos} cupos</span> (según Cuadro 9)
+        </div>
+      )}
+
+      {restriccionesAmb.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="text-xs font-semibold text-foreground mb-1">Restricciones ambientales del territorio</p>
+          <ul className="text-[11px] text-foreground/80 list-disc pl-4">
+            {restriccionesAmb.map((r, i) => <li key={i}>{r.capa}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
