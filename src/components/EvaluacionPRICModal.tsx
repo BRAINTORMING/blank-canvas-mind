@@ -200,6 +200,9 @@ export default function EvaluacionPRICModal({
   const [nombreProyecto, setNombreProyecto] = useState('');
   const [tipoProyecto, setTipoProyecto] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [destinoEspecifico, setDestinoEspecifico] = useState('');
+  const [destinosDisponibles, setDestinosDisponibles] = useState<string[]>([]);
+  const [isLoadingDestinos, setIsLoadingDestinos] = useState(false);
   const [latitud, setLatitud] = useState('');
   const [longitud, setLongitud] = useState('');
   const [superficiePredio, setSuperficiePredio] = useState('');
@@ -208,10 +211,14 @@ export default function EvaluacionPRICModal({
   const [alturaMaxima, setAlturaMaxima] = useState('');
   const [superficieUtilConstruida, setSuperficieUtilConstruida] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  
+
   const [tiposProyecto, setTiposProyecto] = useState<TipoProyectoPRIC[]>([]);
   const [isLoadingTipos, setIsLoadingTipos] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [isEvaluando, setIsEvaluando] = useState(false);
+  const [resultado, setResultado] = useState<EvaluacionResultado | null>(null);
+  const [resultadoError, setResultadoError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTipos = async () => {
@@ -220,13 +227,13 @@ export default function EvaluacionPRICModal({
       try {
         const { data, error } = await externalSupabase
           .from('tipo_proyecto_pric')
-          .select('tipo, categoria, descripcion');
+          .select('tipo, categoria, descripcion, requiere_superficie_util' as string);
         if (error) {
           console.error('Error fetching tipos proyecto:', error);
           toast({ title: "Error", description: "No se pudieron cargar los tipos de proyecto", variant: "destructive" });
           return;
         }
-        setTiposProyecto(data || []);
+        setTiposProyecto((data as TipoProyectoPRIC[]) || []);
       } catch (err) {
         console.error('Error:', err);
       } finally {
@@ -249,7 +256,44 @@ export default function EvaluacionPRICModal({
       .sort();
   }, [tipoProyecto, tiposProyecto]);
 
-  useEffect(() => { setCategoria(''); }, [tipoProyecto]);
+  const requiereSuperficieUtil = useMemo(() => {
+    if (!tipoProyecto || !categoria) return false;
+    const match = tiposProyecto.find(t => t.tipo === tipoProyecto && t.categoria === categoria);
+    return Boolean(match?.requiere_superficie_util);
+  }, [tipoProyecto, categoria, tiposProyecto]);
+
+  useEffect(() => { setCategoria(''); setDestinoEspecifico(''); setDestinosDisponibles([]); }, [tipoProyecto]);
+
+  // Load destinos específicos when categoria changes
+  useEffect(() => {
+    setDestinoEspecifico('');
+    setDestinosDisponibles([]);
+    if (!externalSupabase || !categoria) return;
+    let cancelled = false;
+    (async () => {
+      setIsLoadingDestinos(true);
+      try {
+        const { data, error } = await externalSupabase
+          .from('estacionamientos_factor' as never)
+          .select('destino_especifico')
+          .eq('categoria_proyecto', categoria)
+          .not('destino_especifico', 'is', null);
+        if (cancelled) return;
+        if (error) {
+          console.error('Error fetching destinos:', error);
+          return;
+        }
+        const unique = Array.from(new Set(((data as Array<{ destino_especifico: string | null }>) || [])
+          .map(r => r.destino_especifico)
+          .filter((v): v is string => Boolean(v))));
+        setDestinosDisponibles(unique.sort());
+      } finally {
+        if (!cancelled) setIsLoadingDestinos(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [categoria]);
+
 
   const validateLatitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -90 && num <= 90; };
   const validateLongitud = (value: string) => { const num = parseFloat(value); return !isNaN(num) && num >= -180 && num <= 180; };
