@@ -607,20 +607,24 @@ export default function EvaluacionPRICModal({
               <span className="text-[10px] text-muted-foreground ml-auto">{descripcion.length}/500</span>
             </div>
           </div>
+
+          {/* Resultado de la evaluación */}
+          {(resultado || resultadoError) && (
+            <ResultadoSection resultado={resultado} error={resultadoError} />
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 flex justify-center flex-shrink-0" style={{ borderTop: '1px solid hsl(var(--border))' }}>
           <Button
             onClick={handleSubmit}
-            disabled={!isFormComplete || isLoading}
+            disabled={!isFormComplete || busy}
             className="px-8 py-2 h-10 min-w-[140px] rounded-[14px] font-display font-semibold text-sm text-white transition-all duration-[140ms] hover:-translate-y-0.5 disabled:opacity-40"
             style={{
               background: 'hsl(var(--primary))',
-              
             }}
           >
-            {isLoading ? (
+            {busy ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Evaluando...</>
             ) : (
               'Evaluar'
