@@ -635,3 +635,122 @@ export default function EvaluacionPRICModal({
     </div>
   );
 }
+
+function dictamenStyle(d: DictamenTipo): { label: string; className: string; Icon: typeof CheckCircle2 } {
+  switch (d) {
+    case 'viable':
+      return { label: 'Viable', className: 'bg-emerald-100 text-emerald-800 border-emerald-200', Icon: CheckCircle2 };
+    case 'viable_condicionado':
+      return { label: 'Viable condicionado', className: 'bg-amber-100 text-amber-800 border-amber-200', Icon: Info };
+    case 'no_viable':
+      return { label: 'No viable', className: 'bg-red-100 text-red-800 border-red-200', Icon: XCircle };
+    case 'requiere_revision_manual':
+      return { label: 'Requiere revisión manual', className: 'bg-gray-100 text-gray-800 border-gray-200', Icon: AlertTriangle };
+    case 'sin_zona_identificada_en_este_instrumento':
+      return { label: 'Sin datos cargados para este instrumento todavía', className: 'bg-gray-100 text-gray-600 border-gray-200', Icon: HelpCircle };
+    default:
+      return { label: String(d), className: 'bg-gray-100 text-gray-700 border-gray-200', Icon: Info };
+  }
+}
+
+function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado | null; error: string | null }) {
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+        <p className="text-xs font-semibold text-destructive flex items-center gap-2">
+          <XCircle className="h-4 w-4" /> {error}
+        </p>
+      </div>
+    );
+  }
+  if (!resultado) return null;
+
+  if (resultado.resuelto === false) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" /> No se pudo ubicar el punto ingresado
+        </p>
+        {resultado.motivo && <p className="text-[11px] text-amber-700 mt-1">{resultado.motivo}</p>}
+      </div>
+    );
+  }
+
+  if (resultado.cobertura === 'sin_alcance') {
+    return (
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <p className="text-xs font-semibold text-blue-800 flex items-center gap-2">
+          <Info className="h-4 w-4" /> Esta zona todavía no está cubierta por el piloto de Gdudex
+        </p>
+      </div>
+    );
+  }
+
+  const dictamenes = resultado.dictamenes_por_instrumento || [];
+  const cupos = resultado.estacionamientos?.cupos_requeridos;
+  const restriccionesAmb = resultado.restricciones_ambientales_universales || [];
+
+  return (
+    <div className="space-y-3 pt-2 border-t border-border">
+      <div>
+        <h3 className="text-sm font-display font-semibold text-foreground">Resultado de la evaluación</h3>
+        {(resultado.comuna || resultado.region) && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Comuna: {resultado.comuna || '—'} — Región: {resultado.region || '—'}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {dictamenes.map((d, idx) => {
+          const style = dictamenStyle(d.dictamen);
+          const Icon = style.Icon;
+          const riesgos = [...(d.riesgos_detectados || []), ...(d.patrimonio_detectado || [])];
+          return (
+            <div key={idx} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">{d.instrumento}</p>
+                <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border", style.className)}>
+                  <Icon className="h-3 w-3" /> {style.label}
+                </span>
+              </div>
+              {d.zona_uso_suelo && (
+                <p className="text-[11px] text-muted-foreground">Zona: {d.zona_uso_suelo}</p>
+              )}
+              {d.motivos && d.motivos.length > 0 && (
+                <ul className="text-[11px] text-foreground/80 list-disc pl-4 space-y-0.5">
+                  {d.motivos.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+              )}
+              {riesgos.length > 0 && (
+                <div className="mt-1">
+                  <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Restricciones detectadas
+                  </p>
+                  <ul className="text-[11px] text-foreground/80 list-disc pl-4">
+                    {riesgos.map((r, i) => <li key={i}>{r.capa}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {typeof cupos === 'number' && (
+        <div className="text-xs text-foreground bg-secondary/60 rounded-lg px-3 py-2">
+          Estacionamientos requeridos: <span className="font-semibold">{cupos} cupos</span> (según Cuadro 9)
+        </div>
+      )}
+
+      {restriccionesAmb.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="text-xs font-semibold text-foreground mb-1">Restricciones ambientales del territorio</p>
+          <ul className="text-[11px] text-foreground/80 list-disc pl-4">
+            {restriccionesAmb.map((r, i) => <li key={i}>{r.capa}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
