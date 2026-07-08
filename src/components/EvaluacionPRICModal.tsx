@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileSearch, X, ChevronDown } from 'lucide-react';
+import { Loader2, FileSearch, X, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,35 @@ interface TipoProyectoPRIC {
   tipo: string;
   categoria: string;
   descripcion: string | null;
+  requiere_superficie_util?: boolean | null;
+}
+
+type DictamenTipo =
+  | 'viable'
+  | 'viable_condicionado'
+  | 'no_viable'
+  | 'requiere_revision_manual'
+  | 'sin_zona_identificada_en_este_instrumento'
+  | string;
+
+interface DictamenInstrumento {
+  instrumento: string;
+  dictamen: DictamenTipo;
+  motivos?: string[];
+  zona_uso_suelo?: string | null;
+  riesgos_detectados?: Array<{ capa: string }>;
+  patrimonio_detectado?: Array<{ capa: string }>;
+}
+
+interface EvaluacionResultado {
+  resuelto?: boolean;
+  motivo?: string;
+  cobertura?: string;
+  comuna?: string;
+  region?: string;
+  dictamenes_por_instrumento?: DictamenInstrumento[];
+  estacionamientos?: { cupos_requeridos?: number; nota?: string } | null;
+  restricciones_ambientales_universales?: Array<{ capa: string }>;
 }
 
 export interface EvaluacionPRICData {
