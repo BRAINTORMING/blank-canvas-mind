@@ -225,11 +225,8 @@ export default function EvaluacionPRICModal({
       if (!externalSupabase || !open) return;
       setIsLoadingTipos(true);
       try {
-        const { data, error } = await (externalSupabase
-          .from('tipo_proyecto_pric') as unknown as {
-            select: (cols: string) => Promise<{ data: TipoProyectoPRIC[] | null; error: unknown }>
-          })
-          .select('tipo, categoria, descripcion, requiere_superficie_util');
+        const sb = externalSupabase as unknown as { from: (t: string) => { select: (c: string) => Promise<{ data: unknown; error: unknown }> } };
+        const { data, error } = await sb.from('tipo_proyecto_pric').select('tipo, categoria, descripcion, requiere_superficie_util');
         if (error) {
           console.error('Error fetching tipos proyecto:', error);
           toast({ title: "Error", description: "No se pudieron cargar los tipos de proyecto", variant: "destructive" });
