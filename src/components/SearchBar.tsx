@@ -8,7 +8,7 @@ import { COMUNAS_TARAPACA } from './ActivosLayerControl';
 import { cn } from '@/lib/utils';
 import { type Proyecto } from '@/hooks/useProyectos';
 import EvaluacionPRICModal, { type EvaluacionPRICData } from './EvaluacionPRICModal';
-import proj4 from 'proj4';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { showPaidLockToast } from '@/lib/planLocks';
 
@@ -657,117 +657,26 @@ export default function SearchBar({
     return decPart ? `${formattedInt},${decPart}` : formattedInt;
   };
 
-  // Convert Lat/Lng to UTM coordinates (WGS84 / UTM zone based on longitude, southern hemisphere)
-  const convertToUTM = (lat: number, lng: number): { easting: number; northing: number; eastingFormatted: string; northingFormatted: string; zone: number; epsg: number } => {
-    // Determine UTM zone from longitude (Chile spans zones 18S and 19S)
-    const zone = Math.floor((lng + 180) / 6) + 1;
-    const epsg = 32700 + zone; // Southern hemisphere EPSG codes: 327xx
-    const epsgCode = `EPSG:${epsg}`;
-    
-    // Define the UTM projection dynamically
-    proj4.defs(epsgCode, `+proj=utm +zone=${zone} +south +datum=WGS84 +units=m +no_defs +type=crs`);
-    
-    // Convert from WGS84 (lng, lat) to UTM (easting, northing)
-    const [easting, northing] = proj4('EPSG:4326', epsgCode, [lng, lat]);
-    
-    const eastingRounded = Math.round(easting * 100) / 100;
-    const northingRounded = Math.round(northing * 100) / 100;
-    
-    return { 
-      easting: eastingRounded, 
-      northing: northingRounded,
-      eastingFormatted: formatChileanNumber(eastingRounded),
-      northingFormatted: formatChileanNumber(northingRounded),
-      zone,
-      epsg
-    };
-  };
-
-  // Handle PRIC Evaluation modal submission
-  const handleEvaluacionPRICSubmit = async (data: EvaluacionPRICData) => {
-    setIsPreEvaluacionLoading(true);
-    setShowPreEvaluacionModal(false);
-    setAiResponse('');
-
-    try {
-      // Convert geographic coordinates to UTM (EPSG:32719)
-      const utmCoords = convertToUTM(data.latitud, data.longitud);
-      
-      // Build JSON payload for webhook with UTM coordinates as raw numbers
-      const payload = {
-        nombreProyecto: data.nombreProyecto,
-        tipoProyecto: data.tipoProyecto,
-        categoria: data.categoria,
-        ubicacion: {
-          utmEasting: utmCoords.easting,
-          utmNorthing: utmCoords.northing,
-          epsg: utmCoords.epsg,
-          zona: `${utmCoords.zone}S`,
-          datum: 'WGS84',
-          proyeccion: 'Transversal de Mercator (UTM)',
-          hemisferio: 'Sur',
-          // Also include original lat/lng for reference
-          latitudOriginal: data.latitud,
-          longitudOriginal: data.longitud
-        },
-        superficiePredio: data.superficiePredio,
-        edificacionProyectada: {
-          superficieTotalConstruir: data.superficieTotalConstruir,
-          superficieOcupacionSuelo: data.superficieOcupacionSuelo,
-          alturaMaxima: data.alturaMaxima,
-          superficieUtilConstruida: data.superficieUtilConstruida
-        },
-        descripcion: data.descripcion || ''
-      };
-
-      console.log('Sending PRIC evaluation with UTM coordinates:', payload.ubicacion);
-
-      const response = await fetch('https://gdudex2026.app.n8n.cloud/webhook/df1d3d2e-e2dd-4221-b3d8-1d50bf4fad71', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+  // Handle PRIC Evaluation modal submission.
+  // The RPC call to `evaluar_proyecto_pric` runs inside EvaluacionPRICModal
+  // (against Supabase in EPSG:4326, using lat/lng exactly as entered).
+  // Here we only react to a successful submission by zooming to the point
+  // and activating the Plan Regulador layers on the map.
+  const handleEvaluacionPRICSubmit = (data: EvaluacionPRICData) => {
+    if (onFiltersApply) {
+      onFiltersApply({
+        capas: [],
+        categorias: [],
+        comunas: [],
+        medioambienteKeys: [],
+        clearPrevious: false,
+        activateAllPlanRegulador: true,
+        pricQueryPoint: { lat: data.latitud, lng: data.longitud }
       });
+    }
 
-      if (!response.ok) throw new Error('Error al conectar con el servicio de evaluación');
-
-      const responseData = await response.json();
-      let responseText = responseData.response || responseData.message || JSON.stringify(responseData);
-      responseText = formatResponseWithMarkdown(responseText);
-      
-      setAiResponse(responseText);
-      
-      // Activate all Plan Regulador polygons and zoom to the queried point
-      if (onFiltersApply) {
-        onFiltersApply({
-          capas: [],
-          categorias: [],
-          comunas: [],
-          medioambienteKeys: [],
-          clearPrevious: false,
-          activateAllPlanRegulador: true,
-          pricQueryPoint: { lat: data.latitud, lng: data.longitud }
-        });
-      }
-      
-      // Also zoom to project location (using original lat/lng for map)
-      if (onAddressSelect) {
-        onAddressSelect([data.longitud, data.latitud]);
-      }
-      
-      toast({
-        title: "Evaluación PRIC enviada",
-        description: `Coordenadas UTM: E ${utmCoords.eastingFormatted} m, N ${utmCoords.northingFormatted} m`,
-      });
-    } catch (error) {
-      console.error('Error al enviar evaluación PRIC:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo enviar la evaluación. Intenta nuevamente.",
-        variant: "destructive",
-      });
-      setAiResponse('Error al enviar la evaluación. Por favor intenta nuevamente.');
-    } finally {
-      setIsPreEvaluacionLoading(false);
+    if (onAddressSelect) {
+      onAddressSelect([data.longitud, data.latitud]);
     }
   };
 
