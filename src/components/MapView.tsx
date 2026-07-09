@@ -142,6 +142,7 @@ export default function MapView({
   const loadedPlanReguladorRef = useRef<Set<string>>(new Set());
   const pricMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const radialPickModeRef = useRef<boolean>(false);
+  const pricPickModeRef = useRef<boolean>(false);
   const radialMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   // Radial analysis state — drives spatial filtering across all renders.
