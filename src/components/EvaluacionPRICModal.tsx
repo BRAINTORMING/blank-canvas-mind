@@ -473,7 +473,10 @@ export default function EvaluacionPRICModal({
 
       
       <div 
-        className="w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300"
+        className={cn(
+          "w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300 pointer-events-auto transition-opacity",
+          pickMode && "opacity-60 hover:opacity-100"
+        )}
         style={{
           background: 'hsl(var(--background))',
           borderLeft: '1px solid hsl(var(--border))',
