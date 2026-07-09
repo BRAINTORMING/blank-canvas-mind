@@ -219,6 +219,36 @@ export default function EvaluacionPRICModal({
   const [isEvaluando, setIsEvaluando] = useState(false);
   const [resultado, setResultado] = useState<EvaluacionResultado | null>(null);
   const [resultadoError, setResultadoError] = useState<string | null>(null);
+  const [pickMode, setPickMode] = useState(false);
+
+  // Sync pick mode with the map and listen for picked points
+  useEffect(() => {
+    if (!open) return;
+    window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: pickMode } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: false } }));
+    };
+  }, [pickMode, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { lat: number; lng: number };
+      if (!detail) return;
+      setLatitud(detail.lat.toFixed(6));
+      setLongitud(detail.lng.toFixed(6));
+      setErrors(prev => ({ ...prev, latitud: '', longitud: '' }));
+      setPickMode(false);
+    };
+    window.addEventListener('pric:pointPicked', handler);
+    return () => window.removeEventListener('pric:pointPicked', handler);
+  }, [open]);
+
+  // Ensure pick mode disables when modal closes
+  useEffect(() => {
+    if (!open) setPickMode(false);
+  }, [open]);
+
 
   useEffect(() => {
     const fetchTipos = async () => {
