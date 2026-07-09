@@ -518,7 +518,7 @@ export default function MapView({
 
       // Click on comuna opens detail panel
       map.current.on('click', fillLayerId, (e) => {
-        if (radialPickModeRef.current) return;
+        if (radialPickModeRef.current || pricPickModeRef.current) return;
         if (!e.features || e.features.length === 0) return;
         openDetailPanel({
           type: 'comuna',
