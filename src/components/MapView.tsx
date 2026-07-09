@@ -1559,15 +1559,25 @@ export default function MapView({
       const { enabled } = (e as CustomEvent).detail || {};
       radialPickModeRef.current = Boolean(enabled);
       if (map.current) {
-        map.current.getCanvas().style.cursor = enabled ? 'crosshair' : '';
+        map.current.getCanvas().style.cursor = (enabled || pricPickModeRef.current) ? 'crosshair' : '';
+      }
+    };
+
+    const handlePricPickMode = (e: Event) => {
+      const { enabled } = (e as CustomEvent).detail || {};
+      pricPickModeRef.current = Boolean(enabled);
+      if (map.current) {
+        map.current.getCanvas().style.cursor = (enabled || radialPickModeRef.current) ? 'crosshair' : '';
       }
     };
 
     window.addEventListener('radial:set', handleSet);
     window.addEventListener('radial:pickMode', handlePickMode);
+    window.addEventListener('pric:pickMode', handlePricPickMode);
     return () => {
       window.removeEventListener('radial:set', handleSet);
       window.removeEventListener('radial:pickMode', handlePickMode);
+      window.removeEventListener('pric:pickMode', handlePricPickMode);
       removeRadial();
     };
   }, []);
