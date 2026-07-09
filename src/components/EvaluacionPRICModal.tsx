@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileSearch, X, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle } from 'lucide-react';
+import { Loader2, FileSearch, X, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle, Crosshair, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
@@ -219,6 +219,36 @@ export default function EvaluacionPRICModal({
   const [isEvaluando, setIsEvaluando] = useState(false);
   const [resultado, setResultado] = useState<EvaluacionResultado | null>(null);
   const [resultadoError, setResultadoError] = useState<string | null>(null);
+  const [pickMode, setPickMode] = useState(false);
+
+  // Sync pick mode with the map and listen for picked points
+  useEffect(() => {
+    if (!open) return;
+    window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: pickMode } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: false } }));
+    };
+  }, [pickMode, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { lat: number; lng: number };
+      if (!detail) return;
+      setLatitud(detail.lat.toFixed(6));
+      setLongitud(detail.lng.toFixed(6));
+      setErrors(prev => ({ ...prev, latitud: '', longitud: '' }));
+      setPickMode(false);
+    };
+    window.addEventListener('pric:pointPicked', handler);
+    return () => window.removeEventListener('pric:pointPicked', handler);
+  }, [open]);
+
+  // Ensure pick mode disables when modal closes
+  useEffect(() => {
+    if (!open) setPickMode(false);
+  }, [open]);
+
 
   useEffect(() => {
     const fetchTipos = async () => {
@@ -418,11 +448,35 @@ export default function EvaluacionPRICModal({
   const inputClass = "h-8 bg-card border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 text-xs font-medium transition-all duration-[140ms]";
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[2000] flex">
-      <div className="flex-1 bg-foreground/30" onClick={() => onOpenChange(false)} />
+    <div className={cn("fixed inset-y-0 right-0 z-[2000] flex", pickMode && "pointer-events-none")}>
+      <div
+        className={cn(
+          "flex-1 transition-colors",
+          pickMode ? "bg-transparent pointer-events-none" : "bg-foreground/30 pointer-events-auto"
+        )}
+        onClick={() => !pickMode && onOpenChange(false)}
+      />
+
+      {pickMode && (
+        <div className="pointer-events-auto fixed top-4 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 rounded-full bg-primary text-white px-4 py-2 shadow-lg animate-in fade-in-0 slide-in-from-top-2 duration-200">
+          <Crosshair className="h-4 w-4" />
+          <span className="text-xs font-medium">Haz clic en el mapa para fijar el punto de evaluación</span>
+          <button
+            type="button"
+            onClick={() => setPickMode(false)}
+            className="ml-2 text-[10px] underline underline-offset-2 opacity-90 hover:opacity-100"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
       
       <div 
-        className="w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300"
+        className={cn(
+          "w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300 pointer-events-auto transition-opacity",
+          pickMode && "opacity-60 hover:opacity-100"
+        )}
         style={{
           background: 'hsl(var(--background))',
           borderLeft: '1px solid hsl(var(--border))',
@@ -524,6 +578,40 @@ export default function EvaluacionPRICModal({
               {errors.destinoEspecifico && <p className="text-[10px] text-destructive">{errors.destinoEspecifico}</p>}
             </div>
           )}
+
+          {/* Selector en mapa */}
+          <div
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-colors",
+              pickMode
+                ? "border-primary/40 bg-primary/5"
+                : "border-border bg-card/70"
+            )}
+          >
+            <div className="flex items-start gap-2 min-w-0">
+              <MapPin className={cn("h-4 w-4 mt-0.5 flex-shrink-0", pickMode ? "text-primary" : "text-muted-foreground")} />
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-foreground leading-tight">
+                  Seleccionar punto en el mapa
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                  {pickMode
+                    ? "Haz clic en el mapa para autocompletar latitud y longitud."
+                    : "Actívalo para rellenar las coordenadas con un clic en el mapa."}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant={pickMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPickMode(v => !v)}
+              className="h-7 px-2.5 text-[11px] gap-1 flex-shrink-0"
+            >
+              <Crosshair className="h-3.5 w-3.5" />
+              {pickMode ? "Cancelar" : "Activar"}
+            </Button>
+          </div>
 
           {/* Lat + Lng + Sup */}
           <div className="grid grid-cols-3 gap-3">

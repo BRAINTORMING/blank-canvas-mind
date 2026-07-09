@@ -142,6 +142,7 @@ export default function MapView({
   const loadedPlanReguladorRef = useRef<Set<string>>(new Set());
   const pricMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const radialPickModeRef = useRef<boolean>(false);
+  const pricPickModeRef = useRef<boolean>(false);
   const radialMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   // Radial analysis state — drives spatial filtering across all renders.
@@ -517,7 +518,7 @@ export default function MapView({
 
       // Click on comuna opens detail panel
       map.current.on('click', fillLayerId, (e) => {
-        if (radialPickModeRef.current) return;
+        if (radialPickModeRef.current || pricPickModeRef.current) return;
         if (!e.features || e.features.length === 0) return;
         openDetailPanel({
           type: 'comuna',
@@ -1558,15 +1559,25 @@ export default function MapView({
       const { enabled } = (e as CustomEvent).detail || {};
       radialPickModeRef.current = Boolean(enabled);
       if (map.current) {
-        map.current.getCanvas().style.cursor = enabled ? 'crosshair' : '';
+        map.current.getCanvas().style.cursor = (enabled || pricPickModeRef.current) ? 'crosshair' : '';
+      }
+    };
+
+    const handlePricPickMode = (e: Event) => {
+      const { enabled } = (e as CustomEvent).detail || {};
+      pricPickModeRef.current = Boolean(enabled);
+      if (map.current) {
+        map.current.getCanvas().style.cursor = (enabled || radialPickModeRef.current) ? 'crosshair' : '';
       }
     };
 
     window.addEventListener('radial:set', handleSet);
     window.addEventListener('radial:pickMode', handlePickMode);
+    window.addEventListener('pric:pickMode', handlePricPickMode);
     return () => {
       window.removeEventListener('radial:set', handleSet);
       window.removeEventListener('radial:pickMode', handlePickMode);
+      window.removeEventListener('pric:pickMode', handlePricPickMode);
       removeRadial();
     };
   }, []);
@@ -1762,6 +1773,17 @@ export default function MapView({
         );
         return;
       }
+
+      // PRIC pick mode: capture this click as the evaluation point
+      if (pricPickModeRef.current) {
+        window.dispatchEvent(
+          new CustomEvent('pric:pointPicked', {
+            detail: { lat: e.lngLat.lat, lng: e.lngLat.lng },
+          })
+        );
+        return;
+      }
+
 
       // Check if click was on a marker element or popup
       const target = e.originalEvent.target as HTMLElement;
