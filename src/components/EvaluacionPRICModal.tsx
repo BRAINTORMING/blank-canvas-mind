@@ -579,6 +579,40 @@ export default function EvaluacionPRICModal({
             </div>
           )}
 
+          {/* Selector en mapa */}
+          <div
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-colors",
+              pickMode
+                ? "border-primary/40 bg-primary/5"
+                : "border-border bg-card/70"
+            )}
+          >
+            <div className="flex items-start gap-2 min-w-0">
+              <MapPin className={cn("h-4 w-4 mt-0.5 flex-shrink-0", pickMode ? "text-primary" : "text-muted-foreground")} />
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-foreground leading-tight">
+                  Seleccionar punto en el mapa
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                  {pickMode
+                    ? "Haz clic en el mapa para autocompletar latitud y longitud."
+                    : "Actívalo para rellenar las coordenadas con un clic en el mapa."}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant={pickMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPickMode(v => !v)}
+              className="h-7 px-2.5 text-[11px] gap-1 flex-shrink-0"
+            >
+              <Crosshair className="h-3.5 w-3.5" />
+              {pickMode ? "Cancelar" : "Activar"}
+            </Button>
+          </div>
+
           {/* Lat + Lng + Sup */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
