@@ -448,8 +448,29 @@ export default function EvaluacionPRICModal({
   const inputClass = "h-8 bg-card border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 text-xs font-medium transition-all duration-[140ms]";
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[2000] flex">
-      <div className="flex-1 bg-foreground/30" onClick={() => onOpenChange(false)} />
+    <div className={cn("fixed inset-y-0 right-0 z-[2000] flex", pickMode && "pointer-events-none")}>
+      <div
+        className={cn(
+          "flex-1 transition-colors",
+          pickMode ? "bg-transparent pointer-events-none" : "bg-foreground/30 pointer-events-auto"
+        )}
+        onClick={() => !pickMode && onOpenChange(false)}
+      />
+
+      {pickMode && (
+        <div className="pointer-events-auto fixed top-4 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 rounded-full bg-primary text-white px-4 py-2 shadow-lg animate-in fade-in-0 slide-in-from-top-2 duration-200">
+          <Crosshair className="h-4 w-4" />
+          <span className="text-xs font-medium">Haz clic en el mapa para fijar el punto de evaluación</span>
+          <button
+            type="button"
+            onClick={() => setPickMode(false)}
+            className="ml-2 text-[10px] underline underline-offset-2 opacity-90 hover:opacity-100"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
       
       <div 
         className="w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300"
