@@ -1774,6 +1774,17 @@ export default function MapView({
         return;
       }
 
+      // PRIC pick mode: capture this click as the evaluation point
+      if (pricPickModeRef.current) {
+        window.dispatchEvent(
+          new CustomEvent('pric:pointPicked', {
+            detail: { lat: e.lngLat.lat, lng: e.lngLat.lng },
+          })
+        );
+        return;
+      }
+
+
       // Check if click was on a marker element or popup
       const target = e.originalEvent.target as HTMLElement;
       if (target.closest('.activo-marker') || target.closest('.activo-label') || target.closest('.mapboxgl-popup')) {
