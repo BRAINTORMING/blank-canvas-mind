@@ -227,9 +227,11 @@ export function SidebarFiltersProvider({
   const [expandedMedioambienteCategorias, setExpandedMedioambienteCategorias] = useState<string[]>([]);
   const [allPoligonos, setAllPoligonos] = useState<PoligonoData[]>([]);
 
-  const [planReguladorCapas, setPlanReguladorCapas] = useState<string[]>([]);
-  const [selectedPlanRegulador, setSelectedPlanRegulador] = useState<string[]>([]);
-  const [allPlanReguladorData, setAllPlanReguladorData] = useState<PlanReguladorData[]>([]);
+  // PRIC (poligonos_pric) — nombre_zona_pric + categoria_zona_pric
+  const [pricNombres, setPricNombres] = useState<string[]>([]);
+  const [pricCategoriasByNombre, setPricCategoriasByNombre] = useState<Record<string, string[]>>({});
+  const [selectedPricKeys, setSelectedPricKeys] = useState<string[]>([]);
+  const [allPlanReguladorData, setAllPlanReguladorData] = useState<(PlanReguladorData & { nombre?: string; categoria?: string })[]>([]);
 
   // Plain categoria names (deduped) derived from the composite keys, for
   // consumers of onFiltersChange that expect a flat list of categoria names.
