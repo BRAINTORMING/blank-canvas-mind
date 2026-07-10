@@ -732,11 +732,16 @@ export function SidebarFiltersProvider({
     selectAllMedioambienteCategoriaGroup,
     deselectAllMedioambienteCategoriaGroup,
     areAllMedioambienteCategoriaGroupSelected,
-    planReguladorCapas,
-    selectedPlanRegulador,
-    togglePlanRegulador,
-    selectAllPlanRegulador,
-    deselectAllPlanRegulador,
+    pricNombres,
+    pricCategoriasByNombre,
+    selectedPricKeys,
+    togglePricNombre,
+    togglePricCategoria,
+    isPricNombreFullySelected,
+    isPricNombrePartiallySelected,
+    isPricCategoriaSelected,
+    selectAllPric,
+    deselectAllPric,
   };
 
   return (
