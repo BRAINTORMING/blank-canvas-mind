@@ -383,7 +383,7 @@ export function SidebarFiltersProvider({
 
   useEffect(() => { trackCapas(selectedCapas); }, [selectedCapas, trackCapas]);
   useEffect(() => { trackModule("medioambiente", selectedMedioambienteCategorias.length > 0); }, [selectedMedioambienteCategorias, trackModule]);
-  useEffect(() => { trackModule("plan_regulador", selectedPlanRegulador.length > 0); }, [selectedPlanRegulador, trackModule]);
+  useEffect(() => { trackModule("plan_regulador", selectedPricKeys.length > 0); }, [selectedPricKeys, trackModule]);
 
   async function loadFilterOptions() {
     try {
