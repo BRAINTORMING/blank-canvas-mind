@@ -662,11 +662,38 @@ export function SidebarFiltersProvider({
     return keys.length > 0 && keys.every(k => selectedMedioambienteCategorias.includes(k));
   };
 
-  // Plan Regulador
-  const togglePlanRegulador = (capa: string) =>
-    setSelectedPlanRegulador(prev => prev.includes(capa) ? prev.filter(c => c !== capa) : [...prev, capa]);
-  const selectAllPlanRegulador = () => setSelectedPlanRegulador([...planReguladorCapas]);
-  const deselectAllPlanRegulador = () => setSelectedPlanRegulador([]);
+  // PRIC (poligonos_pric)
+  const pricKey = (nombre: string, categoria: string) => `${nombre}::${categoria}`;
+  const isPricCategoriaSelected = (nombre: string, categoria: string) =>
+    selectedPricKeys.includes(pricKey(nombre, categoria));
+  const isPricNombreFullySelected = (nombre: string) => {
+    const cats = pricCategoriasByNombre[nombre] || [];
+    return cats.length > 0 && cats.every(c => selectedPricKeys.includes(pricKey(nombre, c)));
+  };
+  const isPricNombrePartiallySelected = (nombre: string) => {
+    const cats = pricCategoriasByNombre[nombre] || [];
+    const some = cats.some(c => selectedPricKeys.includes(pricKey(nombre, c)));
+    return some && !isPricNombreFullySelected(nombre);
+  };
+  const togglePricCategoria = (nombre: string, categoria: string) => {
+    const k = pricKey(nombre, categoria);
+    setSelectedPricKeys(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+  };
+  const togglePricNombre = (nombre: string) => {
+    const cats = pricCategoriasByNombre[nombre] || [];
+    const keys = cats.map(c => pricKey(nombre, c));
+    if (isPricNombreFullySelected(nombre)) {
+      setSelectedPricKeys(prev => prev.filter(k => !keys.includes(k)));
+    } else {
+      setSelectedPricKeys(prev => Array.from(new Set([...prev, ...keys])));
+    }
+  };
+  const selectAllPric = () => {
+    const all: string[] = [];
+    pricNombres.forEach(n => (pricCategoriasByNombre[n] || []).forEach(c => all.push(pricKey(n, c))));
+    setSelectedPricKeys(all);
+  };
+  const deselectAllPric = () => setSelectedPricKeys([]);
 
   const value: SidebarFiltersContextValue = {
     regionsWithComunas,
