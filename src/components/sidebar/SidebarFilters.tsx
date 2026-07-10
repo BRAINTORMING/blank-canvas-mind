@@ -127,12 +127,19 @@ interface SidebarFiltersContextValue {
   deselectAllMedioambienteCategoriaGroup: (capa: string, categoria: string) => void;
   areAllMedioambienteCategoriaGroupSelected: (capa: string, categoria: string) => boolean;
 
-  // Plan Regulador
-  planReguladorCapas: string[];
-  selectedPlanRegulador: string[];
-  togglePlanRegulador: (capa: string) => void;
-  selectAllPlanRegulador: () => void;
-  deselectAllPlanRegulador: () => void;
+  // Planes Reguladores (PRIC — table poligonos_pric)
+  pricNombres: string[];
+  pricCategoriasByNombre: Record<string, string[]>;
+  // Composite keys `${nombre_zona_pric}::${categoria_zona_pric}` — each key
+  // corresponds to the set of polygons sharing that (nombre, categoria) pair.
+  selectedPricKeys: string[];
+  togglePricNombre: (nombre: string) => void;
+  togglePricCategoria: (nombre: string, categoria: string) => void;
+  isPricNombreFullySelected: (nombre: string) => boolean;
+  isPricNombrePartiallySelected: (nombre: string) => boolean;
+  isPricCategoriaSelected: (nombre: string, categoria: string) => boolean;
+  selectAllPric: () => void;
+  deselectAllPric: () => void;
 }
 
 const SidebarFiltersContext = createContext<SidebarFiltersContextValue | null>(null);
