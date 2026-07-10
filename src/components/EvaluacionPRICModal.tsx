@@ -21,6 +21,7 @@ type DictamenTipo =
   | 'no_viable'
   | 'requiere_revision_manual'
   | 'sin_zona_identificada_en_este_instrumento'
+  | 'fuera_del_ambito_de_aplicacion'
   | string;
 
 interface DictamenInstrumento {
