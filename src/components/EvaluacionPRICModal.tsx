@@ -797,6 +797,7 @@ function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado
           const style = dictamenStyle(d.dictamen);
           const Icon = style.Icon;
           const riesgos = [...(d.riesgos_detectados || []), ...(d.patrimonio_detectado || [])];
+          const esFueraDelAmbito = d.dictamen === 'fuera_del_ambito_de_aplicacion';
           return (
             <div key={idx} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
               <div className="flex items-start justify-between gap-2">
@@ -805,10 +806,15 @@ function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado
                   <Icon className="h-3 w-3" /> {style.label}
                 </span>
               </div>
-              {d.zona_uso_suelo && (
+              {esFueraDelAmbito && (
+                <p className="text-[11px] text-sky-700 font-medium">
+                  Este punto está fuera del área normada por el PRIC
+                </p>
+              )}
+              {!esFueraDelAmbito && d.zona_uso_suelo && (
                 <p className="text-[11px] text-muted-foreground">Zona: {d.zona_uso_suelo}</p>
               )}
-              {d.motivos && d.motivos.length > 0 && (
+              {!esFueraDelAmbito && d.motivos && d.motivos.length > 0 && (
                 <ul className="text-[11px] text-foreground/80 list-disc pl-4 space-y-0.5">
                   {d.motivos.map((m, i) => <li key={i}>{m}</li>)}
                 </ul>
