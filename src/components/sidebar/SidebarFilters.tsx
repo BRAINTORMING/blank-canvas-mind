@@ -318,7 +318,7 @@ export function SidebarFiltersProvider({
     });
 
     const selectedPlanReguladorData = allPlanReguladorData.filter(p =>
-      selectedPlanRegulador.includes(p.capa)
+      selectedPricKeys.includes(`${p.nombre || ""}::${p.categoria || ""}`)
     );
 
     onFiltersChangeRef.current?.({
