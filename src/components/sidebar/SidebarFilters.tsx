@@ -368,7 +368,7 @@ export function SidebarFiltersProvider({
       setSelectedComunas([]);
       setSelectedRegion("");
       setSelectedMedioambienteCategorias([]);
-      setSelectedPlanRegulador([]);
+      setSelectedPricKeys([]);
       setExpandedCapas([]);
       setExpandedMedioambienteCapas([]);
       setExpandedMedioambienteCategorias([]);
