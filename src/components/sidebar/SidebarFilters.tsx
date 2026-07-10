@@ -350,7 +350,7 @@ export function SidebarFiltersProvider({
     selectedComunas,
     selectedMedioambienteCategorias,
     allPoligonos,
-    selectedPlanRegulador,
+    selectedPricKeys,
     allPlanReguladorData,
     selectedRegion,
     onHasFiltersChange,
