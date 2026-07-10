@@ -334,7 +334,7 @@ export function SidebarFiltersProvider({
       selectedCategorias.length > 0 ||
       selectedComunas.length > 0 ||
       selectedMedioambienteCategorias.length > 0 ||
-      selectedPlanRegulador.length > 0 ||
+      selectedPricKeys.length > 0 ||
       selectedRegion !== "";
 
     onHasFiltersChange?.(hasFilters);
