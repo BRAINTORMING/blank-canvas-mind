@@ -737,6 +737,8 @@ function dictamenStyle(d: DictamenTipo): { label: string; className: string; Ico
       return { label: 'Requiere revisión manual', className: 'bg-gray-100 text-gray-800 border-gray-200', Icon: AlertTriangle };
     case 'sin_zona_identificada_en_este_instrumento':
       return { label: 'Sin datos cargados para este instrumento todavía', className: 'bg-gray-100 text-gray-600 border-gray-200', Icon: HelpCircle };
+    case 'fuera_del_ambito_de_aplicacion':
+      return { label: 'Fuera del ámbito de aplicación', className: 'bg-sky-100 text-sky-800 border-sky-200', Icon: Info };
     default:
       return { label: String(d), className: 'bg-gray-100 text-gray-700 border-gray-200', Icon: Info };
   }
