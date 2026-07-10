@@ -467,11 +467,44 @@ export function SidebarFiltersProvider({
   async function loadPlanReguladorOptions() {
     try {
       if (!supabase) return;
-      const { data, error } = await (supabase as any).from("plan_regulador").select("capa, coordenadas");
-      if (error) throw error;
-      setAllPlanReguladorData(data || []);
-      const uniqueCapas: string[] = [...new Set((data || []).map((i: any) => i.capa as string))].filter((c): c is string => Boolean(c)).sort();
-      setPlanReguladorCapas(uniqueCapas);
+      // New data source: poligonos_pric (nombre_zona_pric / categoria_zona_pric).
+      // Legacy `plan_regulador` table is no longer read here.
+      const rows = await fetchAllRows((from, to) =>
+        (supabase as any)
+          .from("poligonos_pric")
+          .select("nombre_zona_pric, categoria_zona_pric, coordenadas, region, comuna")
+          .range(from, to)
+      );
+      const filtered = regionesPermitidas.length > 0
+        ? (rows || []).filter((r: any) => r.region && regionesPermitidas.some(allowed =>
+            normalize(r.region).includes(normalize(allowed)) || normalize(allowed).includes(normalize(r.region))
+          ))
+        : (rows || []);
+
+      const mapped = filtered
+        .filter((r: any) => r.coordenadas && (r.nombre_zona_pric || r.categoria_zona_pric))
+        .map((r: any) => ({
+          capa: `${r.nombre_zona_pric || "Sin nombre"} — ${r.categoria_zona_pric || "Sin categoría"}`,
+          coordenadas: r.coordenadas as string,
+          nombre: (r.nombre_zona_pric || "Sin nombre") as string,
+          categoria: (r.categoria_zona_pric || "Sin categoría") as string,
+        }));
+
+      setAllPlanReguladorData(mapped);
+
+      // Group categorias by nombre for the UI.
+      const byNombre: Record<string, Set<string>> = {};
+      mapped.forEach((m) => {
+        if (!byNombre[m.nombre]) byNombre[m.nombre] = new Set();
+        byNombre[m.nombre].add(m.categoria);
+      });
+      const nombres = Object.keys(byNombre).sort((a, b) => a.localeCompare(b));
+      const byNombreArr: Record<string, string[]> = {};
+      nombres.forEach((n) => {
+        byNombreArr[n] = Array.from(byNombre[n]).sort((a, b) => a.localeCompare(b));
+      });
+      setPricNombres(nombres);
+      setPricCategoriasByNombre(byNombreArr);
     } catch (e) { console.error(e); }
   }
 
