@@ -1154,12 +1154,27 @@ export function MedioambienteSection() {
   );
 }
 
-/** Planes Reguladores section. */
+/**
+ * Planes Reguladores del Territorio.
+ * Fuente: tabla `poligonos_pric` (nombre_zona_pric + categoria_zona_pric).
+ * Layout numerado en dos bloques:
+ *   1. Nombre de la Zona  — selecciona/deselecciona en grupo todas sus categorías.
+ *   2. Categoría de Zona  — selección individual (mostradas agrupadas por nombre).
+ * Ambos bloques son independientes: el usuario puede filtrar sólo por nombres,
+ * sólo por categorías, o combinar ambos.
+ */
 export function PlanReguladorSection() {
   const { hasPermission } = useAuth();
   const ctx = useSidebarFilters();
   const [open, setOpen] = useState(false);
+  const [expandedNombres, setExpandedNombres] = useState<string[]>([]);
   if (!hasPermission("plan_regulador")) return null;
+
+  const toggleExpand = (n: string) =>
+    setExpandedNombres(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+
+  const nombresSeleccionados = ctx.pricNombres.filter(n => ctx.isPricNombreFullySelected(n) || ctx.isPricNombrePartiallySelected(n)).length;
+  const totalCategorias = ctx.selectedPricKeys.length;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -1169,34 +1184,165 @@ export function PlanReguladorSection() {
             open={open}
             icon={<FileText className="h-4 w-4 text-amber-500" />}
             label="Planes Reguladores"
-            count={ctx.selectedPlanRegulador.length}
+            count={totalCategorias}
             countColorClass="bg-amber-50 text-amber-600"
-            tooltip="Capas de planes reguladores comunales"
+            tooltip="Zonificación normativa del territorio (poligonos_pric)"
           />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200">
-        <div className="px-3 pt-1 pb-2 space-y-1">
-          {ctx.planReguladorCapas.length === 0 ? (
+        <div className="px-3 pt-2 pb-3 space-y-3">
+          {ctx.pricNombres.length === 0 ? (
             <p className="text-[11px] text-muted-foreground px-2 py-1">No hay datos disponibles</p>
           ) : (
             <>
-              <div className="flex items-center gap-2 px-1 py-1">
-                <button onClick={ctx.selectAllPlanRegulador} className="text-[10px] font-medium text-primary hover:text-foreground transition-colors">Seleccionar todos</button>
-                <span className="text-muted-foreground/60">|</span>
-                <button onClick={ctx.deselectAllPlanRegulador} className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">Deseleccionar todos</button>
-              </div>
-              {ctx.planReguladorCapas.map(capa => (
-                <div key={capa} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-[#EFF6FF] transition-colors">
-                  <Checkbox
-                    id={`pr-${capa}`}
-                    checked={ctx.selectedPlanRegulador.includes(capa)}
-                    onCheckedChange={() => ctx.togglePlanRegulador(capa)}
-                    className="h-3.5 w-3.5 border-border data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                  />
-                  <Label htmlFor={`pr-${capa}`} className="text-[11px] cursor-pointer flex-1 font-medium text-foreground">{capa}</Label>
+              {/* Header + acciones globales */}
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[9.5px] font-semibold uppercase tracking-widest text-[#9CA3AF]">
+                  Planes Reguladores del Territorio
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={ctx.selectAllPric}
+                    className="text-[9.5px] font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                  >
+                    Todos
+                  </button>
+                  <span className="text-muted-foreground/40 text-[9px]">·</span>
+                  <button
+                    onClick={ctx.deselectAllPric}
+                    className="text-[9.5px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Limpiar
+                  </button>
                 </div>
-              ))}
+              </div>
+
+              {/* ═══ 1. Nombre de la Zona ═══ */}
+              <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-2">
+                <div className="flex items-center gap-1.5 px-1 pb-1.5 mb-1 border-b border-amber-100">
+                  <span className="flex items-center justify-center h-4 w-4 rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                    1
+                  </span>
+                  <p className="text-[10.5px] font-semibold text-amber-900 tracking-tight">
+                    Nombre de la Zona
+                  </p>
+                  <span className="ml-auto text-[9px] text-amber-700/70 font-medium">
+                    {nombresSeleccionados}/{ctx.pricNombres.length}
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {ctx.pricNombres.map(nombre => {
+                    const full = ctx.isPricNombreFullySelected(nombre);
+                    const partial = ctx.isPricNombrePartiallySelected(nombre);
+                    const cats = ctx.pricCategoriasByNombre[nombre] || [];
+                    return (
+                      <div
+                        key={nombre}
+                        className={cn(
+                          "flex items-center gap-2 py-1 px-1.5 rounded-md transition-colors",
+                          full || partial ? "bg-white" : "hover:bg-white/70"
+                        )}
+                      >
+                        <Checkbox
+                          id={`pric-n-${nombre}`}
+                          checked={full}
+                          onCheckedChange={() => ctx.togglePricNombre(nombre)}
+                          className={cn(
+                            "h-3.5 w-3.5 border-amber-300",
+                            "data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500",
+                            partial && "bg-amber-200 border-amber-400"
+                          )}
+                        />
+                        <Label
+                          htmlFor={`pric-n-${nombre}`}
+                          className="text-[11px] cursor-pointer flex-1 font-medium text-foreground leading-tight"
+                        >
+                          {nombre}
+                        </Label>
+                        <span className="text-[9px] text-muted-foreground font-medium tabular-nums">
+                          {cats.length}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ═══ 2. Categoría de Zona ═══ */}
+              <div className="rounded-lg border border-amber-100 bg-white p-2">
+                <div className="flex items-center gap-1.5 px-1 pb-1.5 mb-1 border-b border-amber-100">
+                  <span className="flex items-center justify-center h-4 w-4 rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                    2
+                  </span>
+                  <p className="text-[10.5px] font-semibold text-amber-900 tracking-tight">
+                    Categoría de Zona
+                  </p>
+                  <span className="ml-auto text-[9px] text-amber-700/70 font-medium">
+                    {totalCategorias} sel.
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {ctx.pricNombres.map(nombre => {
+                    const cats = ctx.pricCategoriasByNombre[nombre] || [];
+                    if (cats.length === 0) return null;
+                    const expanded = expandedNombres.includes(nombre);
+                    const selCount = cats.filter(c => ctx.isPricCategoriaSelected(nombre, c)).length;
+                    return (
+                      <div key={nombre} className="border-l-2 border-amber-200 pl-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(nombre)}
+                          className="w-full flex items-center gap-1 py-0.5 group"
+                        >
+                          {expanded ? (
+                            <ChevronDown className="h-3 w-3 text-amber-600 shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 text-amber-600 shrink-0" />
+                          )}
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800 truncate">
+                            {nombre}
+                          </span>
+                          {selCount > 0 && (
+                            <span className="ml-auto text-[9px] font-medium text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                              {selCount}
+                            </span>
+                          )}
+                        </button>
+                        {expanded && (
+                          <div className="pl-3 pt-0.5 space-y-0.5">
+                            {cats.map(cat => {
+                              const checked = ctx.isPricCategoriaSelected(nombre, cat);
+                              return (
+                                <div
+                                  key={cat}
+                                  className={cn(
+                                    "flex items-center gap-2 py-0.5 px-1 rounded transition-colors",
+                                    checked ? "bg-amber-50" : "hover:bg-amber-50/60"
+                                  )}
+                                >
+                                  <Checkbox
+                                    id={`pric-c-${nombre}-${cat}`}
+                                    checked={checked}
+                                    onCheckedChange={() => ctx.togglePricCategoria(nombre, cat)}
+                                    className="h-3 w-3 border-amber-300 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                  />
+                                  <Label
+                                    htmlFor={`pric-c-${nombre}-${cat}`}
+                                    className="text-[10.5px] cursor-pointer flex-1 text-foreground/80 leading-tight"
+                                  >
+                                    {cat}
+                                  </Label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
         </div>
