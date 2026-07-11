@@ -1189,7 +1189,6 @@ export function PlanReguladorSection() {
   const toggleExpand = (n: string) =>
     setExpandedNombres(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
 
-  const nombresSeleccionados = ctx.pricNombres.filter(n => ctx.isPricNombreFullySelected(n) || ctx.isPricNombrePartiallySelected(n)).length;
   const totalCategorias = ctx.selectedPricKeys.length;
 
   return (
