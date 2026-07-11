@@ -700,6 +700,15 @@ export function SidebarFiltersProvider({
   };
   const deselectAllPric = () => setSelectedPricKeys([]);
 
+  const togglePricLimite = () => {
+    setPricLimiteEnabled(prev => {
+      const next = !prev;
+      window.dispatchEvent(new CustomEvent("pric:limiteToggle", { detail: { enabled: next } }));
+      return next;
+    });
+  };
+
+
   const value: SidebarFiltersContextValue = {
     regionsWithComunas,
     loadingComunas,
