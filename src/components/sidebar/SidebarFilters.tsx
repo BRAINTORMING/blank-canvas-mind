@@ -140,6 +140,10 @@ interface SidebarFiltersContextValue {
   isPricCategoriaSelected: (nombre: string, categoria: string) => boolean;
   selectAllPric: () => void;
   deselectAllPric: () => void;
+
+  // Límite oficial PRIC (contorno del ámbito de aplicación).
+  pricLimiteEnabled: boolean;
+  togglePricLimite: () => void;
 }
 
 const SidebarFiltersContext = createContext<SidebarFiltersContextValue | null>(null);
