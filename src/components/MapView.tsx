@@ -1582,6 +1582,139 @@ export default function MapView({
     };
   }, []);
 
+  // ===== Límite oficial PRIC =====
+  // Loads the PRIC boundary polygon from `pric_limite_oficial_geom` and
+  // renders it as a subtle fill + dark outline BELOW the individual zone
+  // layers, so it never obscures the ZEU/ZPM/ZPC polygons rendered from
+  // `poligonos_pric`. Toggled from the sidebar via `pric:limiteToggle`.
+  const pricLimiteGeomRef = useRef<any | null>(null);
+  const pricLimiteEnabledRef = useRef<boolean>(false);
+
+  const removePricLimiteLayer = useCallback(() => {
+    if (!map.current) return;
+    const src = 'pric-limite-source';
+    const fill = 'pric-limite-fill';
+    const line = 'pric-limite-outline';
+    if (map.current.getLayer(line)) map.current.removeLayer(line);
+    if (map.current.getLayer(fill)) map.current.removeLayer(fill);
+    if (map.current.getSource(src)) map.current.removeSource(src);
+    setSourceCoords('pricLimite', []);
+  }, [setSourceCoords]);
+
+  const addPricLimiteLayer = useCallback((geojson: any) => {
+    if (!map.current || !geojson) return;
+    const src = 'pric-limite-source';
+    const fill = 'pric-limite-fill';
+    const line = 'pric-limite-outline';
+    // Clean prior instance
+    if (map.current.getLayer(line)) map.current.removeLayer(line);
+    if (map.current.getLayer(fill)) map.current.removeLayer(fill);
+    if (map.current.getSource(src)) map.current.removeSource(src);
+
+    const data =
+      geojson.type === 'FeatureCollection' ? geojson :
+      geojson.type === 'Feature' ? geojson :
+      { type: 'Feature', geometry: geojson, properties: {} };
+
+    // Insert BELOW any existing plan regulador zone layers so it never
+    // covers the individual ZEU/ZPM/ZPC polygons.
+    let beforeId: string | undefined;
+    try {
+      const style = map.current.getStyle();
+      const found = style?.layers?.find((l: any) => typeof l.id === 'string' && l.id.startsWith('planregulador-'));
+      if (found) beforeId = found.id;
+    } catch { /* noop */ }
+
+    map.current.addSource(src, { type: 'geojson', data });
+    map.current.addLayer({
+      id: fill,
+      type: 'fill',
+      source: src,
+      paint: {
+        'fill-color': '#4338CA',
+        'fill-opacity': 0.12,
+      },
+    }, beforeId);
+    map.current.addLayer({
+      id: line,
+      type: 'line',
+      source: src,
+      paint: {
+        'line-color': '#312E81',
+        'line-width': 2,
+        'line-opacity': 0.95,
+      },
+    }, beforeId);
+
+    // Register coords with unified fitBounds so the boundary participates
+    // in the auto-zoom alongside any selected zones.
+    try {
+      const coords = extractCoordsFromGeoJSON(
+        typeof geojson === 'string' ? geojson : JSON.stringify(geojson)
+      );
+      setSourceCoords('pricLimite', coords);
+      triggerFitBounds();
+    } catch { /* noop */ }
+  }, [setSourceCoords, triggerFitBounds]);
+
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const enabled = Boolean((e as CustomEvent).detail?.enabled);
+      pricLimiteEnabledRef.current = enabled;
+      if (!enabled) {
+        removePricLimiteLayer();
+        return;
+      }
+      // Fetch once, then reuse
+      if (!pricLimiteGeomRef.current) {
+        if (!supabase) return;
+        const { data, error } = await supabase
+          .from('pric_limite_oficial_geom')
+          .select('geom')
+          .single();
+        if (error || !data) {
+          console.error('[pric limite] fetch error', error);
+          return;
+        }
+        const raw = (data as any).geom;
+        let parsed: any = null;
+        if (raw && typeof raw === 'object') parsed = raw;
+        else if (typeof raw === 'string') {
+          try { parsed = JSON.parse(raw); } catch {
+            console.error('[pric limite] geom is not GeoJSON-parseable', raw?.slice?.(0, 40));
+            return;
+          }
+        }
+        pricLimiteGeomRef.current = parsed;
+      }
+      // Ensure map style is ready
+      const applyWhenReady = () => {
+        if (!map.current) return;
+        if (map.current.isStyleLoaded()) {
+          addPricLimiteLayer(pricLimiteGeomRef.current);
+        } else {
+          map.current.once('style.load', () => addPricLimiteLayer(pricLimiteGeomRef.current));
+        }
+      };
+      applyWhenReady();
+    };
+    window.addEventListener('pric:limiteToggle', handler);
+    return () => window.removeEventListener('pric:limiteToggle', handler);
+  }, [addPricLimiteLayer, removePricLimiteLayer]);
+
+  // Re-apply on style reload if user had it enabled
+  useEffect(() => {
+    if (!map.current) return;
+    const onStyleLoad = () => {
+      if (pricLimiteEnabledRef.current && pricLimiteGeomRef.current) {
+        addPricLimiteLayer(pricLimiteGeomRef.current);
+      }
+    };
+    map.current.on('style.load', onStyleLoad);
+    return () => { map.current?.off('style.load', onStyleLoad); };
+  }, [addPricLimiteLayer]);
+
+
   // Function to zoom to specific coordinates
   const zoomToCoordinates = (coords: Array<[number, number]>) => {
     if (!map.current || coords.length === 0) return;
