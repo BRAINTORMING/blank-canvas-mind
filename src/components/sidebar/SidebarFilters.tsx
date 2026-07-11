@@ -756,6 +756,8 @@ export function SidebarFiltersProvider({
     isPricCategoriaSelected,
     selectAllPric,
     deselectAllPric,
+    pricLimiteEnabled,
+    togglePricLimite,
   };
 
   return (
