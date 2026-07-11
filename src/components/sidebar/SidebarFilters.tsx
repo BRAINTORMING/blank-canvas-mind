@@ -235,6 +235,7 @@ export function SidebarFiltersProvider({
   const [pricNombres, setPricNombres] = useState<string[]>([]);
   const [pricCategoriasByNombre, setPricCategoriasByNombre] = useState<Record<string, string[]>>({});
   const [selectedPricKeys, setSelectedPricKeys] = useState<string[]>([]);
+  const [pricLimiteEnabled, setPricLimiteEnabled] = useState(false);
   const [allPlanReguladorData, setAllPlanReguladorData] = useState<(PlanReguladorData & { nombre?: string; categoria?: string })[]>([]);
 
   // Plain categoria names (deduped) derived from the composite keys, for
