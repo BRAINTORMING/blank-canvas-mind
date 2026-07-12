@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileSearch, X, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle, Crosshair, MapPin } from 'lucide-react';
+import { Loader2, FileSearch, X, ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle, Crosshair, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
