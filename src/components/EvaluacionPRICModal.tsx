@@ -708,7 +708,16 @@ export default function EvaluacionPRICModal({
 
           {/* Resultado de la evaluación */}
           {(resultado || resultadoError) && (
-            <ResultadoSection resultado={resultado} error={resultadoError} />
+            <ResultadoSection
+              resultado={resultado}
+              error={resultadoError}
+              proyecto={{
+                supPredio: parseFloat(superficiePredio) || 0,
+                supTotal: parseFloat(superficieTotalConstruir) || 0,
+                ocupSuelo: parseFloat(superficieOcupacionSuelo) || 0,
+                alturaMax: parseFloat(alturaMaxima) || 0,
+              }}
+            />
           )}
         </div>
 
