@@ -24,13 +24,22 @@ type DictamenTipo =
   | 'fuera_del_ambito_de_aplicacion'
   | string;
 
+interface NormasGrupoUso {
+  cc?: number | null;
+  os?: number | null;
+  altura_max_m?: number | null;
+}
+
 interface DictamenInstrumento {
   instrumento: string;
   dictamen: DictamenTipo;
   motivos?: string[];
   zona_uso_suelo?: string | null;
-  riesgos_detectados?: Array<{ capa: string }>;
-  patrimonio_detectado?: Array<{ capa: string }>;
+  normas_grupo_uso?: NormasGrupoUso | null;
+  subdivision_minima_aplicada_m2?: number | null;
+  restricciones_aplicadas?: Array<{ capa?: string; nota?: string; codigo?: string }>;
+  riesgos_detectados?: Array<{ capa?: string; codigo_zona?: string }>;
+  patrimonio_detectado?: Array<{ capa?: string; codigo_zona?: string }>;
 }
 
 interface EvaluacionResultado {
