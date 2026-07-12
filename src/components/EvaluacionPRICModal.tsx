@@ -746,23 +746,176 @@ export default function EvaluacionPRICModal({
 function dictamenStyle(d: DictamenTipo): { label: string; className: string; Icon: typeof CheckCircle2 } {
   switch (d) {
     case 'viable':
-      return { label: 'Viable', className: 'bg-emerald-100 text-emerald-800 border-emerald-200', Icon: CheckCircle2 };
+      return { label: '✅ Viable', className: 'bg-emerald-100 text-emerald-800 border-emerald-200', Icon: CheckCircle2 };
     case 'viable_condicionado':
-      return { label: 'Viable condicionado', className: 'bg-amber-100 text-amber-800 border-amber-200', Icon: Info };
+      return { label: '⚠️ Viable con condiciones', className: 'bg-amber-100 text-amber-800 border-amber-200', Icon: Info };
     case 'no_viable':
-      return { label: 'No viable', className: 'bg-red-100 text-red-800 border-red-200', Icon: XCircle };
+      return { label: '❌ No viable', className: 'bg-red-100 text-red-800 border-red-200', Icon: XCircle };
     case 'requiere_revision_manual':
-      return { label: 'Requiere revisión manual', className: 'bg-gray-100 text-gray-800 border-gray-200', Icon: AlertTriangle };
+      return { label: '🔍 Requiere revisión de un especialista', className: 'bg-gray-100 text-gray-800 border-gray-200', Icon: AlertTriangle };
     case 'sin_zona_identificada_en_este_instrumento':
-      return { label: 'Sin datos cargados para este instrumento todavía', className: 'bg-gray-100 text-gray-600 border-gray-200', Icon: HelpCircle };
+      return { label: '— Sin datos cargados para este instrumento todavía', className: 'bg-gray-100 text-gray-600 border-gray-200', Icon: HelpCircle };
     case 'fuera_del_ambito_de_aplicacion':
-      return { label: 'Fuera del ámbito de aplicación', className: 'bg-sky-100 text-sky-800 border-sky-200', Icon: Info };
+      return { label: 'ℹ️ Fuera del ámbito de este plan regulador', className: 'bg-sky-100 text-sky-800 border-sky-200', Icon: Info };
     default:
       return { label: String(d), className: 'bg-gray-100 text-gray-700 border-gray-200', Icon: Info };
   }
 }
 
-function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado | null; error: string | null }) {
+const MOTIVOS_DICT: Record<string, string> = {
+  excede_normas_urbanisticas: 'El proyecto supera al menos uno de los índices urbanísticos máximos permitidos en esta zona (ver detalle arriba)',
+  superficie_predial_bajo_el_minimo_exigido: 'El terreno no alcanza la superficie mínima de subdivisión exigida para esta zona',
+  uso_prohibido_en_zona: 'Esta categoría de proyecto está expresamente prohibida en esta zona según la Ordenanza',
+  sin_regla_definida_para_esta_combinacion_zona_categoria: 'Aún no existe una regla específica cargada para esta combinación de zona y categoría de proyecto — requiere revisión de un especialista',
+  normas_urbanisticas_no_cargadas_para_esta_zona: 'Esta zona todavía no tiene índices urbanísticos cargados en el sistema',
+  normas_de_edificacion_remitidas_al_plan_regulador_comunal_prc: 'Las normas de edificación de esta zona (Área Urbana) dependen del Plan Regulador Comunal, no del PRIC directamente',
+  requiere_estudio_de_riesgo: 'Se requiere un estudio fundado de riesgo antes de aprobar el proyecto',
+  requiere_estudio_por_superposicion_con_zona_de_riesgo: 'El terreno se superpone con una zona de riesgo — se requiere estudio de mitigación',
+  zona_patrimonial_requiere_autorizacion: 'Se requiere autorización específica por protección patrimonial o natural',
+  uso_condicionado_en_zona: 'El uso está permitido bajo condiciones específicas que deben verificarse',
+  prohibido_por_superposicion_con_restriccion: 'El proyecto está prohibido por superponerse con un área de protección o riesgo severo',
+};
+
+interface ProyectoValores {
+  supPredio: number;
+  supTotal: number;
+  ocupSuelo: number;
+  alturaMax: number;
+}
+
+function NormaRow({ label, norma, proyecto, unidad = '', decimals = 2, higherIsWorse = true }: {
+  label: string;
+  norma: number | null | undefined;
+  proyecto: number;
+  unidad?: string;
+  decimals?: number;
+  higherIsWorse?: boolean;
+}) {
+  const hasNorma = norma !== null && norma !== undefined && !Number.isNaN(Number(norma));
+  const cumple = hasNorma ? (higherIsWorse ? proyecto <= Number(norma) : proyecto >= Number(norma)) : null;
+  const fmt = (n: number) => (Number.isFinite(n) ? n.toFixed(decimals) : '—');
+  return (
+    <tr className="border-b border-border last:border-0">
+      <td className="py-1.5 pr-2 text-[11px] text-foreground">{label}</td>
+      <td className="py-1.5 px-2 text-[11px] text-foreground text-right tabular-nums">{hasNorma ? `${fmt(Number(norma))}${unidad ? ' ' + unidad : ''}` : '—'}</td>
+      <td className="py-1.5 px-2 text-[11px] text-foreground text-right tabular-nums">{fmt(proyecto)}{unidad ? ' ' + unidad : ''}</td>
+      <td className="py-1.5 pl-2 text-[11px] text-right">
+        {cumple === null ? <span className="text-muted-foreground">—</span> : cumple ? <span className="text-emerald-700">✅</span> : <span className="text-red-700">❌</span>}
+      </td>
+    </tr>
+  );
+}
+
+function InstrumentoDetalle({ d, proyecto }: { d: DictamenInstrumento; proyecto: ProyectoValores }) {
+  const [open, setOpen] = useState(false);
+  const esFueraDelAmbito = d.dictamen === 'fuera_del_ambito_de_aplicacion';
+  const esSinDatos = d.dictamen === 'sin_zona_identificada_en_este_instrumento';
+  if (esFueraDelAmbito || esSinDatos) return null;
+
+  const cc = proyecto.supPredio > 0 ? proyecto.supTotal / proyecto.supPredio : 0;
+  const os = proyecto.supPredio > 0 ? proyecto.ocupSuelo / proyecto.supPredio : 0;
+  const normas = d.normas_grupo_uso;
+  const subMin = d.subdivision_minima_aplicada_m2;
+  const restricciones = d.restricciones_aplicadas || [];
+  const riesgos = d.riesgos_detectados || [];
+  const patrimonio = d.patrimonio_detectado || [];
+  const motivos = d.motivos || [];
+
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+      >
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {open ? 'Ocultar detalle del cálculo' : 'Ver detalle del cálculo'}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2.5 rounded-md border border-border bg-secondary/30 p-2.5">
+          {d.zona_uso_suelo && (
+            <p className="text-[11px] text-foreground">
+              <span className="text-muted-foreground">Zona identificada:</span>{' '}
+              <span className="font-semibold">{d.zona_uso_suelo}</span>
+            </p>
+          )}
+
+          {normas ? (
+            <div>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="py-1 pr-2 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Índice</th>
+                    <th className="py-1 px-2 text-right text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Norma máx.</th>
+                    <th className="py-1 px-2 text-right text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Proyecto</th>
+                    <th className="py-1 pl-2 text-right text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Result.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <NormaRow label="Coef. Constructibilidad" norma={normas.cc} proyecto={Number(cc.toFixed(2))} />
+                  <NormaRow label="Coef. Ocupación de Suelo" norma={normas.os} proyecto={Number(os.toFixed(2))} />
+                  <NormaRow label="Altura Máxima" norma={normas.altura_max_m} proyecto={proyecto.alturaMax} unidad="m" decimals={1} />
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground italic">
+              Esta zona no tiene normas urbanísticas cargadas en el sistema todavía.
+            </p>
+          )}
+
+          {subMin !== null && subMin !== undefined && (
+            <div className="text-[11px] text-foreground flex items-start gap-1.5">
+              <span>{proyecto.supPredio >= Number(subMin) ? '✅' : '❌'}</span>
+              <span>
+                <span className="text-muted-foreground">Subdivisión predial mínima:</span>{' '}
+                <span className="font-semibold">{Number(subMin).toLocaleString('es-CL')} m²</span> requeridos — tu predio tiene{' '}
+                <span className="font-semibold">{proyecto.supPredio.toLocaleString('es-CL')} m²</span>
+              </span>
+            </div>
+          )}
+
+          {restricciones.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-amber-800 mb-1">⚠️ Restricciones que afectaron el cálculo</p>
+              <ul className="text-[11px] text-foreground/85 list-disc pl-4 space-y-0.5">
+                {restricciones.map((r, i) => (
+                  <li key={i}>{[r.capa, r.nota].filter(Boolean).join(' — ') || r.codigo || 'Restricción'}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {riesgos.length > 0 && (
+            <p className="text-[11px] text-foreground/85">
+              🌊 Zona de riesgo detectada: <span className="font-semibold">{riesgos.map(r => r.codigo_zona || r.capa).filter(Boolean).join(', ')}</span> — requiere estudio fundado de un especialista antes de construir
+            </p>
+          )}
+
+          {patrimonio.length > 0 && (
+            <p className="text-[11px] text-foreground/85">
+              🏛️ Zona de protección patrimonial/natural{patrimonio.some(p => p.codigo_zona || p.capa) ? `: ${patrimonio.map(p => p.codigo_zona || p.capa).filter(Boolean).join(', ')}` : ''} — requiere autorización específica
+            </p>
+          )}
+
+          {motivos.length > 0 && (
+            <ul className="text-[11px] text-foreground/85 list-disc pl-4 space-y-0.5">
+              {motivos.map((m, i) => {
+                const traducido = MOTIVOS_DICT[m];
+                return traducido
+                  ? <li key={i}>{traducido}</li>
+                  : <li key={i} className="italic text-muted-foreground">{m}</li>;
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultadoSection({ resultado, error, proyecto }: { resultado: EvaluacionResultado | null; error: string | null; proyecto: ProyectoValores }) {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
@@ -814,7 +967,6 @@ function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado
         {dictamenes.map((d, idx) => {
           const style = dictamenStyle(d.dictamen);
           const Icon = style.Icon;
-          const riesgos = [...(d.riesgos_detectados || []), ...(d.patrimonio_detectado || [])];
           const esFueraDelAmbito = d.dictamen === 'fuera_del_ambito_de_aplicacion';
           return (
             <div key={idx} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
@@ -832,21 +984,7 @@ function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado
               {!esFueraDelAmbito && d.zona_uso_suelo && (
                 <p className="text-[11px] text-muted-foreground">Zona: {d.zona_uso_suelo}</p>
               )}
-              {!esFueraDelAmbito && d.motivos && d.motivos.length > 0 && (
-                <ul className="text-[11px] text-foreground/80 list-disc pl-4 space-y-0.5">
-                  {d.motivos.map((m, i) => <li key={i}>{m}</li>)}
-                </ul>
-              )}
-              {riesgos.length > 0 && (
-                <div className="mt-1">
-                  <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" /> Restricciones detectadas
-                  </p>
-                  <ul className="text-[11px] text-foreground/80 list-disc pl-4">
-                    {riesgos.map((r, i) => <li key={i}>{r.capa}</li>)}
-                  </ul>
-                </div>
-              )}
+              <InstrumentoDetalle d={d} proyecto={proyecto} />
             </div>
           );
         })}
@@ -866,6 +1004,10 @@ function ResultadoSection({ resultado, error }: { resultado: EvaluacionResultado
           </ul>
         </div>
       )}
+
+      <p className="text-[10px] text-muted-foreground/80 leading-relaxed pt-1 border-t border-border">
+        Esta evaluación es preliminar y automatizada. No reemplaza el pronunciamiento oficial de la Dirección de Obras Municipales ni de la Secretaría Regional Ministerial de Vivienda y Urbanismo.
+      </p>
     </div>
   );
 }
