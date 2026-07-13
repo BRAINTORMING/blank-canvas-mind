@@ -51,6 +51,9 @@ interface EvaluacionResultado {
   dictamenes_por_instrumento?: DictamenInstrumento[];
   estacionamientos?: { cupos_requeridos?: number; nota?: string } | null;
   restricciones_ambientales_universales?: Array<{ capa: string }>;
+  dentro_limite_oficial_pric?: boolean;
+  comuna_aproximada?: boolean;
+  nota?: string;
 }
 
 export interface EvaluacionPRICData {
@@ -926,6 +929,30 @@ function ResultadoSection({ resultado, error, proyecto }: { resultado: Evaluacio
     );
   }
   if (!resultado) return null;
+
+  // Criterio principal: si el punto está fuera del límite oficial del PRIC,
+  // mostrar SOLO la aclaración de alcance (no es error, no es rechazo).
+  if (resultado.dentro_limite_oficial_pric === false) {
+    const mensaje = resultado.nota ||
+      'La coordenada consultada está fuera del área que regula el Plan Regulador Intercomunal Costero de Tarapacá. Esta evaluación no aplica para esta ubicación.';
+    const comunaLabel = resultado.comuna_aproximada
+      ? `Comuna más cercana (aproximada): ${resultado.comuna}`
+      : `Ubicación de referencia: comuna de ${resultado.comuna}`;
+    return (
+      <div className="space-y-3 pt-2 border-t border-border">
+        <h3 className="text-sm font-display font-semibold text-foreground">Resultado de la evaluación</h3>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-xs font-semibold text-blue-900 flex items-center gap-2">
+            <Info className="h-4 w-4" /> Fuera del Ámbito de Aplicación del PRIC
+          </p>
+          <p className="text-[11px] text-blue-800 mt-2 leading-relaxed">{mensaje}</p>
+          {resultado.comuna && (
+            <p className="text-[10px] text-muted-foreground mt-2">{comunaLabel}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (resultado.resuelto === false) {
     return (
