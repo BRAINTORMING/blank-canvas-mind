@@ -51,6 +51,9 @@ interface EvaluacionResultado {
   dictamenes_por_instrumento?: DictamenInstrumento[];
   estacionamientos?: { cupos_requeridos?: number; nota?: string } | null;
   restricciones_ambientales_universales?: Array<{ capa: string }>;
+  dentro_limite_oficial_pric?: boolean;
+  comuna_aproximada?: boolean;
+  nota?: string;
 }
 
 export interface EvaluacionPRICData {
