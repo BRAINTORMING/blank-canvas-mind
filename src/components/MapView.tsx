@@ -1773,6 +1773,13 @@ export default function MapView({
     });
   }, [clearAllBounds]);
 
+  // Register the reset callback so useUnifiedFitBounds can auto-revert to the
+  // initial view whenever every filter source ends up empty.
+  useEffect(() => {
+    onFitBoundsEmptyRef.current = resetToInitialView;
+  }, [resetToInitialView]);
+
+
 
   // SVG path mapping for icons (Lucide icons SVG paths)
   const getIconSvgPath = (iconName: string): string => {
