@@ -157,18 +157,26 @@ export default function Index() {
 
     // Handle Plan Regulador activation
     if (filterAction.activateAllPlanRegulador) {
-      // Activate ALL Plan Regulador polygons
-      const allPlanReguladorData = allPlanRegulador.map(p => ({
-        capa: p.capa,
-        coordenadas: p.coordenadas
-      }));
-      
+      // When we have a query point (PRIC evaluation), activate ONLY the
+      // polygons that actually contain the evaluated coordinate, so the map
+      // zooms to the zones involved in the evaluation instead of drowning
+      // them in every zone of the plan. The user can still add more zones
+      // manually from the sidebar. When there is no query point, fall back
+      // to activating all polygons (previous behavior for other triggers).
+      const point = filterAction.pricQueryPoint;
+      const relevant = point
+        ? allPlanRegulador.filter(p => geoJsonContainsPoint(p.coordenadas, point.lng, point.lat))
+        : allPlanRegulador;
+
+      const selected = relevant.map(p => ({ capa: p.capa, coordenadas: p.coordenadas }));
+
       setFilters(prev => ({
         ...prev,
-        planRegulador: allPlanReguladorData
+        planRegulador: selected,
       }));
       return;
     }
+
 
     if (filterAction.clearPrevious) {
       const matchingPoligonos = allPoligonos.filter(p => {
