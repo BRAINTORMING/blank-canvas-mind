@@ -16,6 +16,63 @@ import RadialSummaryPanel from "@/components/RadialSummaryPanel";
 import ResponsibleUseNotice from "@/components/ResponsibleUseNotice";
 import { fetchAllRows } from "@/lib/supabasePagination";
 
+// Ray-casting point-in-polygon over a 2D ring `[[lng, lat], ...]`.
+function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function geometryContainsPoint(geom: any, lng: number, lat: number): boolean {
+  if (!geom || !geom.type) return false;
+  if (geom.type === 'Polygon') {
+    const rings = geom.coordinates as number[][][];
+    if (!rings?.[0] || !pointInRing(lng, lat, rings[0])) return false;
+    for (let i = 1; i < rings.length; i++) {
+      if (pointInRing(lng, lat, rings[i])) return false; // in a hole
+    }
+    return true;
+  }
+  if (geom.type === 'MultiPolygon') {
+    for (const poly of geom.coordinates as number[][][][]) {
+      if (!poly?.[0] || !pointInRing(lng, lat, poly[0])) continue;
+      let inHole = false;
+      for (let i = 1; i < poly.length; i++) {
+        if (pointInRing(lng, lat, poly[i])) { inHole = true; break; }
+      }
+      if (!inHole) return true;
+    }
+    return false;
+  }
+  if (geom.type === 'GeometryCollection') {
+    return (geom.geometries || []).some((g: any) => geometryContainsPoint(g, lng, lat));
+  }
+  return false;
+}
+
+// Checks whether a GeoJSON string (Feature / FeatureCollection / raw geometry)
+// contains a given lng/lat point. Used to identify the Plan Regulador zones
+// involved in a PRIC evaluation so the map only highlights those.
+export function geoJsonContainsPoint(geoJsonString: string, lng: number, lat: number): boolean {
+  try {
+    const gj = JSON.parse(geoJsonString);
+    if (gj.type === 'FeatureCollection') {
+      return (gj.features || []).some((f: any) => f?.geometry && geometryContainsPoint(f.geometry, lng, lat));
+    }
+    if (gj.type === 'Feature') return geometryContainsPoint(gj.geometry, lng, lat);
+    return geometryContainsPoint(gj, lng, lat);
+  } catch {
+    return false;
+  }
+}
+
+
 export interface CapaWithCategorias {
   capa: string;
   categorias: string[];
@@ -157,18 +214,26 @@ export default function Index() {
 
     // Handle Plan Regulador activation
     if (filterAction.activateAllPlanRegulador) {
-      // Activate ALL Plan Regulador polygons
-      const allPlanReguladorData = allPlanRegulador.map(p => ({
-        capa: p.capa,
-        coordenadas: p.coordenadas
-      }));
-      
+      // When we have a query point (PRIC evaluation), activate ONLY the
+      // polygons that actually contain the evaluated coordinate, so the map
+      // zooms to the zones involved in the evaluation instead of drowning
+      // them in every zone of the plan. The user can still add more zones
+      // manually from the sidebar. When there is no query point, fall back
+      // to activating all polygons (previous behavior for other triggers).
+      const point = filterAction.pricQueryPoint;
+      const relevant = point
+        ? allPlanRegulador.filter(p => geoJsonContainsPoint(p.coordenadas, point.lng, point.lat))
+        : allPlanRegulador;
+
+      const selected = relevant.map(p => ({ capa: p.capa, coordenadas: p.coordenadas }));
+
       setFilters(prev => ({
         ...prev,
-        planRegulador: allPlanReguladorData
+        planRegulador: selected,
       }));
       return;
     }
+
 
     if (filterAction.clearPrevious) {
       const matchingPoligonos = allPoligonos.filter(p => {
