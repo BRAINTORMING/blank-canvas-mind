@@ -10,7 +10,10 @@ interface FitBoundsOptions {
   maxZoom?: number;
   /** Animation duration */
   duration?: number;
+  /** Called when triggerFitBounds runs and no source has coordinates. */
+  onEmpty?: () => void;
 }
+
 
 /**
  * Unified fitBounds hook that collects coordinates from all filter sources
