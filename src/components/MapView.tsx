@@ -1604,7 +1604,11 @@ export default function MapView({
     if (map.current.getLayer(fill)) map.current.removeLayer(fill);
     if (map.current.getSource(src)) map.current.removeSource(src);
     setSourceCoords('pricLimite', []);
-  }, [setSourceCoords]);
+    // Re-run unified fit — if no other sources remain, this reverts to the
+    // initial view (via the onEmpty callback registered in useUnifiedFitBounds).
+    triggerFitBounds();
+  }, [setSourceCoords, triggerFitBounds]);
+
 
   const addPricLimiteLayer = useCallback((geojson: any) => {
     if (!map.current || !geojson) return;
