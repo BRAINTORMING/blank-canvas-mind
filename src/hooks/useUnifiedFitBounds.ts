@@ -28,7 +28,14 @@ export function useUnifiedFitBounds(
     padding = 80,
     maxZoom = 14,
     duration = 1800,
+    onEmpty,
   } = options;
+
+  // Keep the latest onEmpty callback in a ref so timeouts see the current one
+  // without needing to re-create the setters on every render.
+  const onEmptyRef = useRef<(() => void) | undefined>(onEmpty);
+  useEffect(() => { onEmptyRef.current = onEmpty; }, [onEmpty]);
+
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coordsRef = useRef<Map<string, [number, number][]>>(new Map());
