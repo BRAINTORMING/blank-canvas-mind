@@ -130,13 +130,18 @@ export default function MapView({
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const tarapacaMarker = useRef<mapboxgl.Marker | null>(null);
   
-  // Unified fitBounds system
+  // Unified fitBounds system. `onEmpty` is invoked when all filters are
+  // cleared; we forward it to `resetToInitialView` via a ref because that
+  // function is defined further below.
+  const onFitBoundsEmptyRef = useRef<(() => void) | null>(null);
   const { setSourceCoords, triggerFitBounds, clearAll: clearAllBounds } = useUnifiedFitBounds(map, {
     debounceMs: 200,
     padding: 80,
     maxZoom: 14,
     duration: 1800,
+    onEmpty: () => onFitBoundsEmptyRef.current?.(),
   });
+
   const loadedComunasRef = useRef<Set<string>>(new Set());
   const loadedPoligonosRef = useRef<Set<string>>(new Set());
   const loadedPlanReguladorRef = useRef<Set<string>>(new Set());
