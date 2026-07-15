@@ -68,7 +68,13 @@ export function useUnifiedFitBounds(
         allCoords.push(...coords);
       });
 
-      if (allCoords.length === 0) return;
+      if (allCoords.length === 0) {
+        // No sources have coordinates — invoke onEmpty (typically resets to
+        // the initial view) so callers can revert zoom when filters clear.
+        onEmptyRef.current?.();
+        return;
+      }
+
 
       if (allCoords.length === 1) {
         map.current.flyTo({
