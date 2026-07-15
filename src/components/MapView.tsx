@@ -1006,8 +1006,12 @@ export default function MapView({
     if (filteredPlanRegulador.length === 0) {
       setSourceCoords('planRegulador', []);
       setResultCounts(prev => ({ ...prev, planRegulador: 0 }));
+      // Re-fit so we either zoom to remaining sources or reset to the initial
+      // view when nothing else is selected.
+      triggerFitBounds();
       return;
     }
+
     
     // Load all selected plan regulador layers
     const loadAndZoomPlanRegulador = async () => {
