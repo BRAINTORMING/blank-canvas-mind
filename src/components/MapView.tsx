@@ -130,18 +130,13 @@ export default function MapView({
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const tarapacaMarker = useRef<mapboxgl.Marker | null>(null);
   
-  // Unified fitBounds system. `onEmpty` is invoked when all filters are
-  // cleared; we forward it to `resetToInitialView` via a ref because that
-  // function is defined further below.
-  const onFitBoundsEmptyRef = useRef<(() => void) | null>(null);
+  // Unified fitBounds system
   const { setSourceCoords, triggerFitBounds, clearAll: clearAllBounds } = useUnifiedFitBounds(map, {
     debounceMs: 200,
     padding: 80,
     maxZoom: 14,
     duration: 1800,
-    onEmpty: () => onFitBoundsEmptyRef.current?.(),
   });
-
   const loadedComunasRef = useRef<Set<string>>(new Set());
   const loadedPoligonosRef = useRef<Set<string>>(new Set());
   const loadedPlanReguladorRef = useRef<Set<string>>(new Set());
@@ -1006,12 +1001,8 @@ export default function MapView({
     if (filteredPlanRegulador.length === 0) {
       setSourceCoords('planRegulador', []);
       setResultCounts(prev => ({ ...prev, planRegulador: 0 }));
-      // Re-fit so we either zoom to remaining sources or reset to the initial
-      // view when nothing else is selected.
-      triggerFitBounds();
       return;
     }
-
     
     // Load all selected plan regulador layers
     const loadAndZoomPlanRegulador = async () => {
@@ -1608,11 +1599,7 @@ export default function MapView({
     if (map.current.getLayer(fill)) map.current.removeLayer(fill);
     if (map.current.getSource(src)) map.current.removeSource(src);
     setSourceCoords('pricLimite', []);
-    // Re-run unified fit — if no other sources remain, this reverts to the
-    // initial view (via the onEmpty callback registered in useUnifiedFitBounds).
-    triggerFitBounds();
-  }, [setSourceCoords, triggerFitBounds]);
-
+  }, [setSourceCoords]);
 
   const addPricLimiteLayer = useCallback((geojson: any) => {
     if (!map.current || !geojson) return;
@@ -1780,13 +1767,6 @@ export default function MapView({
       essential: true,
     });
   }, [clearAllBounds]);
-
-  // Register the reset callback so useUnifiedFitBounds can auto-revert to the
-  // initial view whenever every filter source ends up empty.
-  useEffect(() => {
-    onFitBoundsEmptyRef.current = resetToInitialView;
-  }, [resetToInitialView]);
-
 
 
   // SVG path mapping for icons (Lucide icons SVG paths)

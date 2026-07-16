@@ -10,10 +10,7 @@ interface FitBoundsOptions {
   maxZoom?: number;
   /** Animation duration */
   duration?: number;
-  /** Called when triggerFitBounds runs and no source has coordinates. */
-  onEmpty?: () => void;
 }
-
 
 /**
  * Unified fitBounds hook that collects coordinates from all filter sources
@@ -28,14 +25,7 @@ export function useUnifiedFitBounds(
     padding = 80,
     maxZoom = 14,
     duration = 1800,
-    onEmpty,
   } = options;
-
-  // Keep the latest onEmpty callback in a ref so timeouts see the current one
-  // without needing to re-create the setters on every render.
-  const onEmptyRef = useRef<(() => void) | undefined>(onEmpty);
-  useEffect(() => { onEmptyRef.current = onEmpty; }, [onEmpty]);
-
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coordsRef = useRef<Map<string, [number, number][]>>(new Map());
@@ -68,13 +58,7 @@ export function useUnifiedFitBounds(
         allCoords.push(...coords);
       });
 
-      if (allCoords.length === 0) {
-        // No sources have coordinates — invoke onEmpty (typically resets to
-        // the initial view) so callers can revert zoom when filters clear.
-        onEmptyRef.current?.();
-        return;
-      }
-
+      if (allCoords.length === 0) return;
 
       if (allCoords.length === 1) {
         map.current.flyTo({
