@@ -516,8 +516,9 @@ export function SidebarFiltersProvider({
   // ===== Actions =====
   const setRegion = (region: string) => {
     setSelectedRegion(region);
-    const regionComunas = regionsWithComunas.find(r => r.region === region)?.comunas || [];
-    setSelectedComunas(regionComunas.map(c => c.comuna.toLowerCase().replace(/\s+/g, "-")));
+    // Do NOT auto-select all comunas: at initial load nothing should be
+    // marked on the map. Comunas remain empty until the user picks them.
+    setSelectedComunas([]);
     onRegionChange?.(region);
   };
 
