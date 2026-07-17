@@ -375,20 +375,41 @@ export function SidebarFiltersProvider({
       setSelectedCapas([]);
       setSelectedCategorias([]);
       setSelectedComunas([]);
-      setSelectedRegion("");
       setSelectedMedioambienteCategorias([]);
       setSelectedPricKeys([]);
       setExpandedCapas([]);
       setExpandedMedioambienteCapas([]);
       setExpandedMedioambienteCategorias([]);
-      onRegionChangeRef.current?.("");
+      // Re-default region to Tarapacá (or the first allowed region) so the
+      // "position zero" of Gdudex always has a region pre-picked.
+      const preferred =
+        regionsWithComunas.find(r => normalize(r.region).includes("tarapaca"))?.region ||
+        regionsWithComunas[0]?.region ||
+        "";
+      setSelectedRegion(preferred);
+      onRegionChangeRef.current?.(preferred);
     }
-    // Only re-run when resetKey actually changes. onRegionChange is read
-    // through a ref (kept in sync above) so a non-memoized callback from the
-    // parent doesn't re-trigger this effect on every render — that was
-    // causing filters to reset themselves immediately after any selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
+
+  // Auto-select Tarapacá as the default region on first load so the user
+  // doesn't have to open the dropdown to start filtering. The map still
+  // stays on the globe until an actual filter is applied.
+  const didAutoPickRegion = useRef(false);
+  useEffect(() => {
+    if (didAutoPickRegion.current) return;
+    if (loadingComunas) return;
+    if (selectedRegion) { didAutoPickRegion.current = true; return; }
+    if (regionsWithComunas.length === 0) return;
+    const preferred =
+      regionsWithComunas.find(r => normalize(r.region).includes("tarapaca"))?.region ||
+      regionsWithComunas[0]?.region;
+    if (preferred) {
+      didAutoPickRegion.current = true;
+      setSelectedRegion(preferred);
+      onRegionChangeRef.current?.(preferred);
+    }
+  }, [loadingComunas, regionsWithComunas, selectedRegion, normalize]);
 
   useEffect(() => { trackCapas(selectedCapas); }, [selectedCapas, trackCapas]);
   useEffect(() => { trackModule("medioambiente", selectedMedioambienteCategorias.length > 0); }, [selectedMedioambienteCategorias, trackModule]);
