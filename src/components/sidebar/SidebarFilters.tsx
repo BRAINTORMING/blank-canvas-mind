@@ -334,13 +334,17 @@ export function SidebarFiltersProvider({
       planRegulador: selectedPlanReguladorData,
     });
 
+    // NOTE: selectedRegion is intentionally excluded. Having a region picked
+    // (e.g. the default "Tarapacá") is not itself a "filter" — the map only
+    // draws things once the user actually selects comunas/capas/proyectos.
+    // Clearing every filter manually should return to the globe view while
+    // keeping the region selected.
     const hasFilters =
       selectedCapas.length > 0 ||
       selectedCategorias.length > 0 ||
       selectedComunas.length > 0 ||
       selectedMedioambienteCategorias.length > 0 ||
-      selectedPricKeys.length > 0 ||
-      selectedRegion !== "";
+      selectedPricKeys.length > 0;
 
     onHasFiltersChange?.(hasFilters);
 
