@@ -807,7 +807,7 @@ export default function MapView({
     };
     
     loadAndZoomPoligonos();
-  }, [filters.poligonos, filters.comunas, isPolygonInSelectedComunas, radialActive, radialState.center, radialState.radiusKm, allPoligonos, polygonIntersectsRadius]);
+  }, [filters.poligonos, filters.comunas, isPolygonInSelectedComunas, matchesPricEvalZone]);
 
   // Load Plan Regulador GeoJSON and add to map
   const loadPlanReguladorGeoJSON = (planRegulador: PlanReguladorData): [number, number][] => {
