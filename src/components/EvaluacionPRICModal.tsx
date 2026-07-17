@@ -443,8 +443,26 @@ export default function EvaluacionPRICModal({
       setAlturaMaxima(''); setSuperficieUtilConstruida('');
       setDescripcion(''); setErrors({});
       setResultado(null); setResultadoError(null);
+      // Clear the map's PRIC zone-focus when the modal closes.
+      window.dispatchEvent(new CustomEvent('pric:evalResult', { detail: { zones: null } }));
     }
   }, [open]);
+
+  // Broadcast evaluated zones so the map can focus on the involved polygons only.
+  useEffect(() => {
+    if (!resultado || resultado.dentro_limite_oficial_pric === false) {
+      window.dispatchEvent(new CustomEvent('pric:evalResult', { detail: { zones: null } }));
+      return;
+    }
+    const dictamenes = resultado.dictamenes_por_instrumento || [];
+    const zones = Array.from(new Set(
+      dictamenes
+        .filter(d => d.dictamen !== 'fuera_del_ambito_de_aplicacion' && d.dictamen !== 'sin_zona_identificada_en_este_instrumento')
+        .map(d => d.zona_uso_suelo)
+        .filter((z): z is string => !!z && z.trim().length > 0)
+    ));
+    window.dispatchEvent(new CustomEvent('pric:evalResult', { detail: { zones: zones.length > 0 ? zones : null } }));
+  }, [resultado]);
 
   const isFormComplete = Boolean(
     nombreProyecto.trim() && tipoProyecto && categoria && latitud.trim() && longitud.trim() &&
