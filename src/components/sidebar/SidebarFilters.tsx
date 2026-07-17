@@ -1218,18 +1218,19 @@ export function PlanReguladorSection() {
     setExpandedNombres(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
 
   const totalCategorias = ctx.selectedPricKeys.length;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<FileText className="h-4 w-4 text-amber-500" />}
             label="Planes Reguladores"
             count={totalCategorias}
             countColorClass="bg-amber-50 text-amber-600"
-            tooltip="Zonificación normativa del territorio (poligonos_pric)"
+            tooltip={locked ? "Selecciona una región para activar" : "Zonificación normativa del territorio (poligonos_pric)"}
           />
         </button>
       </CollapsibleTrigger>
