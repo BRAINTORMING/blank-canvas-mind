@@ -146,6 +146,9 @@ export default function Index() {
   };
 
   const handleResetView = () => {
+    // Clear PRIC evaluation marker and zone-focus mode alongside filter reset.
+    setPricQueryPoint(null);
+    window.dispatchEvent(new CustomEvent('pric:evalResult', { detail: { zones: null } }));
     setShouldResetView(prev => !prev);
   };
 
