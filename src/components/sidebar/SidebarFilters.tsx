@@ -1079,18 +1079,19 @@ export function MedioambienteSection() {
   const ctx = useSidebarFilters();
   const [open, setOpen] = useState(false);
   if (!hasPermission("medioambiente")) return null;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<Leaf className="h-4 w-4 text-emerald-500" />}
             label="Medio Ambiente"
             count={ctx.selectedMedioambienteCategorias.length}
             countColorClass="bg-emerald-50 text-emerald-600"
-            tooltip="Polígonos de áreas medioambientales"
+            tooltip={locked ? "Selecciona una región para activar" : "Polígonos de áreas medioambientales"}
           />
         </button>
       </CollapsibleTrigger>
