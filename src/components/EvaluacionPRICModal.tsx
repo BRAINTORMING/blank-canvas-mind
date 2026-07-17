@@ -1059,3 +1059,123 @@ function ResultadoSection({ resultado, error, proyecto }: { resultado: Evaluacio
     </div>
   );
 }
+
+interface ExplicacionIA {
+  narrativa?: string;
+  respuesta?: string;
+  explicacion?: string;
+  fuentes?: Array<{ titulo?: string; articulo?: string; texto?: string; url?: string } | string>;
+  [k: string]: any;
+}
+
+function ExplicarConIA({ dictamen }: { dictamen: DictamenInstrumento }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<ExplicacionIA | null>(null);
+  const [showFuentes, setShowFuentes] = useState(false);
+
+  const solicitar = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      if (!externalSupabase) throw new Error('Servicio de IA no disponible');
+      const { data: resp, error: fnErr } = await externalSupabase.functions.invoke('explicar-dictamen', {
+        body: {
+          seccion: 'pric',
+          contexto: dictamen,
+          pregunta_usuario: null,
+        },
+      });
+      if (fnErr) throw fnErr;
+      setData((resp as ExplicacionIA) || {});
+    } catch (e: any) {
+      console.error('explicar-dictamen error:', e);
+      setError('No se pudo obtener la explicación. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const narrativa = data?.narrativa || data?.respuesta || data?.explicacion || '';
+  const fuentes = Array.isArray(data?.fuentes) ? data!.fuentes! : [];
+
+  return (
+    <div className="mt-2">
+      {!data && !loading && (
+        <button
+          type="button"
+          onClick={solicitar}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline"
+        >
+          <Sparkles className="h-3 w-3" />
+          Explicar con IA
+        </button>
+      )}
+
+      {loading && (
+        <div className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Generando explicación...
+        </div>
+      )}
+
+      {error && (
+        <div className="text-[11px] text-destructive flex items-center gap-1.5">
+          <AlertTriangle className="h-3 w-3" /> {error}
+          <button
+            type="button"
+            onClick={solicitar}
+            className="underline underline-offset-2 text-primary ml-1"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      {data && !loading && (
+        <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            <Sparkles className="h-3 w-3" /> Explicación IA
+          </div>
+          {narrativa ? (
+            <p className="text-[11px] leading-relaxed text-foreground/90 whitespace-pre-wrap">{narrativa}</p>
+          ) : (
+            <p className="text-[11px] italic text-muted-foreground">Sin narrativa disponible.</p>
+          )}
+          {fuentes.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowFuentes(s => !s)}
+                className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+              >
+                {showFuentes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {showFuentes ? 'Ocultar fuentes' : `Ver fuentes (${fuentes.length})`}
+              </button>
+              {showFuentes && (
+                <ul className="mt-1.5 space-y-1 text-[10.5px] text-foreground/80 list-disc pl-4">
+                  {fuentes.map((f, i) => {
+                    if (typeof f === 'string') return <li key={i}>{f}</li>;
+                    const titulo = f.titulo || f.articulo || 'Fuente';
+                    return (
+                      <li key={i}>
+                        <span className="font-semibold">{titulo}</span>
+                        {f.texto ? <span className="text-muted-foreground"> — {f.texto}</span> : null}
+                        {f.url ? (
+                          <a href={f.url} target="_blank" rel="noreferrer" className="ml-1 text-primary underline">
+                            enlace
+                          </a>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
