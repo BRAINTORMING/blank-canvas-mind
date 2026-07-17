@@ -26,12 +26,13 @@ export const MAP_STYLES: MapStyleOption[] = [
 const STORAGE_KEY = "gdudex:mapStyleKey";
 
 export function getStoredMapStyle(): MapStyleOption {
+  const DEFAULT = MAP_STYLES.find(s => s.key === "light") ?? MAP_STYLES[0];
   try {
     const k = localStorage.getItem(STORAGE_KEY);
     const found = MAP_STYLES.find(s => s.key === k);
     if (found) return found;
   } catch {}
-  return MAP_STYLES[0];
+  return DEFAULT;
 }
 
 interface Props {
