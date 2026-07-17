@@ -743,23 +743,17 @@ export default function MapView({
     if (!map.current || !map.current.isStyleLoaded()) return;
 
     // Base set = whatever the user explicitly picked in the sidebar.
-    const baseSelected = filters.poligonos || [];
-    // When radial analysis is active, also auto-include every medioambiente
-    // polygon whose geometry intersects the radial circle, so the user sees
-    // the affected polygons visually highlighted inside the radius.
-    const radialDiscovered = (radialActive && radialState.center)
-      ? (allPoligonos || []).filter(p => polygonIntersectsRadius(p.coordenadas))
-      : [];
-
-    const mergedMap = new Map<string, PoligonoData>();
-    [...baseSelected, ...radialDiscovered].forEach(p => {
-      const k = `${p.capa}::${p.categoria}::${p.etiqueta || ''}`;
-      if (!mergedMap.has(k)) mergedMap.set(k, p);
-    });
-    const selectedPoligonos = Array.from(mergedMap.values());
+    // Note: radial analysis intentionally does NOT auto-add polygons — it acts
+    // as a spatial filter on the user's own selection, so toggling filters off
+    // reliably removes them from the map even while radial is active.
+    const selectedPoligonos = filters.poligonos || [];
 
     // Filter poligonos
     const filteredPoligonos = selectedPoligonos.filter(poligono => {
+      // PRIC eval mode: keep only polygons whose capa/etiqueta match the evaluated zones.
+      if (!matchesPricEvalZone(poligono.capa, poligono.etiqueta, poligono.categoria)) {
+        return false;
+      }
       // If no comunas selected, show all
       if (!filters.comunas || filters.comunas.length === 0) {
         return true;
