@@ -1050,7 +1050,7 @@ export default function MapView({
     };
     
     loadAndZoomPlanRegulador();
-  }, [filters.planRegulador, filters.comunas, isPolygonInSelectedComunas, radialActive, radialState.center, radialState.radiusKm, allPlanRegulador, polygonIntersectsRadius]);
+  }, [filters.planRegulador, filters.comunas, isPolygonInSelectedComunas, allPlanRegulador, pricEvalZones, matchesPricEvalZone]);
 
   // Extract coordinates from GeoJSON string
   const extractCoordsFromGeoJSON = (geoJsonString: string): [number, number][] => {
