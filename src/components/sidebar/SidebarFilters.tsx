@@ -334,13 +334,17 @@ export function SidebarFiltersProvider({
       planRegulador: selectedPlanReguladorData,
     });
 
+    // NOTE: selectedRegion is intentionally excluded. Having a region picked
+    // (e.g. the default "Tarapacá") is not itself a "filter" — the map only
+    // draws things once the user actually selects comunas/capas/proyectos.
+    // Clearing every filter manually should return to the globe view while
+    // keeping the region selected.
     const hasFilters =
       selectedCapas.length > 0 ||
       selectedCategorias.length > 0 ||
       selectedComunas.length > 0 ||
       selectedMedioambienteCategorias.length > 0 ||
-      selectedPricKeys.length > 0 ||
-      selectedRegion !== "";
+      selectedPricKeys.length > 0;
 
     onHasFiltersChange?.(hasFilters);
 
@@ -371,20 +375,41 @@ export function SidebarFiltersProvider({
       setSelectedCapas([]);
       setSelectedCategorias([]);
       setSelectedComunas([]);
-      setSelectedRegion("");
       setSelectedMedioambienteCategorias([]);
       setSelectedPricKeys([]);
       setExpandedCapas([]);
       setExpandedMedioambienteCapas([]);
       setExpandedMedioambienteCategorias([]);
-      onRegionChangeRef.current?.("");
+      // Re-default region to Tarapacá (or the first allowed region) so the
+      // "position zero" of Gdudex always has a region pre-picked.
+      const preferred =
+        regionsWithComunas.find(r => normalize(r.region).includes("tarapaca"))?.region ||
+        regionsWithComunas[0]?.region ||
+        "";
+      setSelectedRegion(preferred);
+      onRegionChangeRef.current?.(preferred);
     }
-    // Only re-run when resetKey actually changes. onRegionChange is read
-    // through a ref (kept in sync above) so a non-memoized callback from the
-    // parent doesn't re-trigger this effect on every render — that was
-    // causing filters to reset themselves immediately after any selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
+
+  // Auto-select Tarapacá as the default region on first load so the user
+  // doesn't have to open the dropdown to start filtering. The map still
+  // stays on the globe until an actual filter is applied.
+  const didAutoPickRegion = useRef(false);
+  useEffect(() => {
+    if (didAutoPickRegion.current) return;
+    if (loadingComunas) return;
+    if (selectedRegion) { didAutoPickRegion.current = true; return; }
+    if (regionsWithComunas.length === 0) return;
+    const preferred =
+      regionsWithComunas.find(r => normalize(r.region).includes("tarapaca"))?.region ||
+      regionsWithComunas[0]?.region;
+    if (preferred) {
+      didAutoPickRegion.current = true;
+      setSelectedRegion(preferred);
+      onRegionChangeRef.current?.(preferred);
+    }
+  }, [loadingComunas, regionsWithComunas, selectedRegion, normalize]);
 
   useEffect(() => { trackCapas(selectedCapas); }, [selectedCapas, trackCapas]);
   useEffect(() => { trackModule("medioambiente", selectedMedioambienteCategorias.length > 0); }, [selectedMedioambienteCategorias, trackModule]);
@@ -516,8 +541,9 @@ export function SidebarFiltersProvider({
   // ===== Actions =====
   const setRegion = (region: string) => {
     setSelectedRegion(region);
-    const regionComunas = regionsWithComunas.find(r => r.region === region)?.comunas || [];
-    setSelectedComunas(regionComunas.map(c => c.comuna.toLowerCase().replace(/\s+/g, "-")));
+    // Do NOT auto-select all comunas: at initial load nothing should be
+    // marked on the map. Comunas remain empty until the user picks them.
+    setSelectedComunas([]);
     onRegionChange?.(region);
   };
 
@@ -974,18 +1000,19 @@ export function CapasBaseSection() {
   const ctx = useSidebarFilters();
   const [open, setOpen] = useState(false);
   if (!hasPermission("capas")) return null;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<Layers className="h-4 w-4 text-blue-500" />}
             label="Capas Base"
             count={ctx.capasWithCategorias.reduce((acc, c) => acc + ctx.getSelectedCategoriasCount(c.capa), 0)}
             countColorClass="bg-blue-50 text-blue-600"
-            tooltip="Activa capas base de información territorial"
+            tooltip={locked ? "Selecciona una región para activar" : "Activa capas base de información territorial"}
           />
         </button>
       </CollapsibleTrigger>
@@ -1052,18 +1079,19 @@ export function MedioambienteSection() {
   const ctx = useSidebarFilters();
   const [open, setOpen] = useState(false);
   if (!hasPermission("medioambiente")) return null;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<Leaf className="h-4 w-4 text-emerald-500" />}
             label="Medio Ambiente"
             count={ctx.selectedMedioambienteCategorias.length}
             countColorClass="bg-emerald-50 text-emerald-600"
-            tooltip="Polígonos de áreas medioambientales"
+            tooltip={locked ? "Selecciona una región para activar" : "Polígonos de áreas medioambientales"}
           />
         </button>
       </CollapsibleTrigger>
@@ -1190,18 +1218,19 @@ export function PlanReguladorSection() {
     setExpandedNombres(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
 
   const totalCategorias = ctx.selectedPricKeys.length;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<FileText className="h-4 w-4 text-amber-500" />}
             label="Planes Reguladores"
             count={totalCategorias}
             countColorClass="bg-amber-50 text-amber-600"
-            tooltip="Zonificación normativa del territorio (poligonos_pric)"
+            tooltip={locked ? "Selecciona una región para activar" : "Zonificación normativa del territorio (poligonos_pric)"}
           />
         </button>
       </CollapsibleTrigger>
