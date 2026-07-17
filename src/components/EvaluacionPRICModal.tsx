@@ -1030,6 +1030,9 @@ function ResultadoSection({ resultado, error, proyecto }: { resultado: Evaluacio
                 <p className="text-[11px] text-muted-foreground">Zona: {d.zona_uso_suelo}</p>
               )}
               <InstrumentoDetalle d={d} proyecto={proyecto} />
+              {!esFueraDelAmbito && d.dictamen !== 'sin_zona_identificada_en_este_instrumento' && (
+                <ExplicarConIA dictamen={d} />
+              )}
             </div>
           );
         })}
