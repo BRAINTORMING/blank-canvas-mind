@@ -151,6 +151,10 @@ export default function MapView({
   );
   const radialActive = radialState.active && !!radialState.center;
 
+  // PRIC evaluation zone-focus mode. When set, plan regulador and
+  // medioambiente rendering are filtered to only the zones involved.
+  const [pricEvalZones, setPricEvalZones] = useState<string[] | null>(null);
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
@@ -163,6 +167,27 @@ export default function MapView({
     window.addEventListener('radial:set', handler);
     return () => window.removeEventListener('radial:set', handler);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { zones?: string[] | null } | undefined;
+      const zones = detail?.zones;
+      setPricEvalZones(Array.isArray(zones) && zones.length > 0 ? zones : null);
+    };
+    window.addEventListener('pric:evalResult', handler);
+    return () => window.removeEventListener('pric:evalResult', handler);
+  }, []);
+
+  // Match a value against active PRIC eval zone codes (case-insensitive substring).
+  const matchesPricEvalZone = useCallback((...vals: (string | null | undefined)[]) => {
+    if (!pricEvalZones || pricEvalZones.length === 0) return true;
+    const zonesLower = pricEvalZones.map(z => z.toLowerCase());
+    return vals.some(v => {
+      if (!v) return false;
+      const vl = v.toLowerCase();
+      return zonesLower.some(z => vl.includes(z) || z.includes(vl));
+    });
+  }, [pricEvalZones]);
 
   // Auto-close detail card whenever the user shifts focus to a different
   // dataset (filter change, radial toggle, search-driven results, etc.).
