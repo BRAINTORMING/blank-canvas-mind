@@ -151,6 +151,10 @@ export default function MapView({
   );
   const radialActive = radialState.active && !!radialState.center;
 
+  // PRIC evaluation zone-focus mode. When set, plan regulador and
+  // medioambiente rendering are filtered to only the zones involved.
+  const [pricEvalZones, setPricEvalZones] = useState<string[] | null>(null);
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
@@ -163,6 +167,27 @@ export default function MapView({
     window.addEventListener('radial:set', handler);
     return () => window.removeEventListener('radial:set', handler);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { zones?: string[] | null } | undefined;
+      const zones = detail?.zones;
+      setPricEvalZones(Array.isArray(zones) && zones.length > 0 ? zones : null);
+    };
+    window.addEventListener('pric:evalResult', handler);
+    return () => window.removeEventListener('pric:evalResult', handler);
+  }, []);
+
+  // Match a value against active PRIC eval zone codes (case-insensitive substring).
+  const matchesPricEvalZone = useCallback((...vals: (string | null | undefined)[]) => {
+    if (!pricEvalZones || pricEvalZones.length === 0) return true;
+    const zonesLower = pricEvalZones.map(z => z.toLowerCase());
+    return vals.some(v => {
+      if (!v) return false;
+      const vl = v.toLowerCase();
+      return zonesLower.some(z => vl.includes(z) || z.includes(vl));
+    });
+  }, [pricEvalZones]);
 
   // Auto-close detail card whenever the user shifts focus to a different
   // dataset (filter change, radial toggle, search-driven results, etc.).
@@ -718,23 +743,17 @@ export default function MapView({
     if (!map.current || !map.current.isStyleLoaded()) return;
 
     // Base set = whatever the user explicitly picked in the sidebar.
-    const baseSelected = filters.poligonos || [];
-    // When radial analysis is active, also auto-include every medioambiente
-    // polygon whose geometry intersects the radial circle, so the user sees
-    // the affected polygons visually highlighted inside the radius.
-    const radialDiscovered = (radialActive && radialState.center)
-      ? (allPoligonos || []).filter(p => polygonIntersectsRadius(p.coordenadas))
-      : [];
-
-    const mergedMap = new Map<string, PoligonoData>();
-    [...baseSelected, ...radialDiscovered].forEach(p => {
-      const k = `${p.capa}::${p.categoria}::${p.etiqueta || ''}`;
-      if (!mergedMap.has(k)) mergedMap.set(k, p);
-    });
-    const selectedPoligonos = Array.from(mergedMap.values());
+    // Note: radial analysis intentionally does NOT auto-add polygons — it acts
+    // as a spatial filter on the user's own selection, so toggling filters off
+    // reliably removes them from the map even while radial is active.
+    const selectedPoligonos = filters.poligonos || [];
 
     // Filter poligonos
     const filteredPoligonos = selectedPoligonos.filter(poligono => {
+      // PRIC eval mode: keep only polygons whose capa/etiqueta match the evaluated zones.
+      if (!matchesPricEvalZone(poligono.capa, poligono.etiqueta, poligono.categoria)) {
+        return false;
+      }
       // If no comunas selected, show all
       if (!filters.comunas || filters.comunas.length === 0) {
         return true;
@@ -788,7 +807,7 @@ export default function MapView({
     };
     
     loadAndZoomPoligonos();
-  }, [filters.poligonos, filters.comunas, isPolygonInSelectedComunas, radialActive, radialState.center, radialState.radiusKm, allPoligonos, polygonIntersectsRadius]);
+  }, [filters.poligonos, filters.comunas, isPolygonInSelectedComunas, matchesPricEvalZone]);
 
   // Load Plan Regulador GeoJSON and add to map
   const loadPlanReguladorGeoJSON = (planRegulador: PlanReguladorData): [number, number][] => {
@@ -966,21 +985,23 @@ export default function MapView({
   useEffect(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
 
-    const baseSelected = filters.planRegulador || [];
-    // When radial analysis is active, auto-include every Plan Regulador layer
-    // whose geometry intersects the radial circle.
-    const radialDiscovered = (radialActive && radialState.center)
-      ? (allPlanRegulador || []).filter(pr => polygonIntersectsRadius(pr.coordenadas))
-      : [];
+    // In PRIC eval mode: force-load only the polygons matching the evaluated
+    // zones (from allPlanRegulador), regardless of the user's filter selection.
+    // Otherwise: use the user's explicit selection (radial no longer auto-adds).
+    const baseSelected: PlanReguladorData[] = (pricEvalZones && pricEvalZones.length > 0)
+      ? (allPlanRegulador || []).filter(pr => matchesPricEvalZone(pr.capa))
+      : (filters.planRegulador || []);
 
     const mergedMap = new Map<string, PlanReguladorData>();
-    [...baseSelected, ...radialDiscovered].forEach(p => {
+    baseSelected.forEach(p => {
       const k = `planregulador::${p.capa}`;
       if (!mergedMap.has(k)) mergedMap.set(k, p);
     });
     const selectedPlanRegulador = Array.from(mergedMap.values());
 
     const filteredPlanRegulador = selectedPlanRegulador.filter(pr => {
+      // Do NOT apply comuna filter in PRIC eval mode — we want the exact zones.
+      if (pricEvalZones && pricEvalZones.length > 0) return true;
       if (!filters.comunas || filters.comunas.length === 0) {
         return true;
       }
@@ -1029,7 +1050,7 @@ export default function MapView({
     };
     
     loadAndZoomPlanRegulador();
-  }, [filters.planRegulador, filters.comunas, isPolygonInSelectedComunas, radialActive, radialState.center, radialState.radiusKm, allPlanRegulador, polygonIntersectsRadius]);
+  }, [filters.planRegulador, filters.comunas, isPolygonInSelectedComunas, allPlanRegulador, pricEvalZones, matchesPricEvalZone]);
 
   // Extract coordinates from GeoJSON string
   const extractCoordsFromGeoJSON = (geoJsonString: string): [number, number][] => {
