@@ -985,21 +985,23 @@ export default function MapView({
   useEffect(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
 
-    const baseSelected = filters.planRegulador || [];
-    // When radial analysis is active, auto-include every Plan Regulador layer
-    // whose geometry intersects the radial circle.
-    const radialDiscovered = (radialActive && radialState.center)
-      ? (allPlanRegulador || []).filter(pr => polygonIntersectsRadius(pr.coordenadas))
-      : [];
+    // In PRIC eval mode: force-load only the polygons matching the evaluated
+    // zones (from allPlanRegulador), regardless of the user's filter selection.
+    // Otherwise: use the user's explicit selection (radial no longer auto-adds).
+    const baseSelected: PlanReguladorData[] = (pricEvalZones && pricEvalZones.length > 0)
+      ? (allPlanRegulador || []).filter(pr => matchesPricEvalZone(pr.capa))
+      : (filters.planRegulador || []);
 
     const mergedMap = new Map<string, PlanReguladorData>();
-    [...baseSelected, ...radialDiscovered].forEach(p => {
+    baseSelected.forEach(p => {
       const k = `planregulador::${p.capa}`;
       if (!mergedMap.has(k)) mergedMap.set(k, p);
     });
     const selectedPlanRegulador = Array.from(mergedMap.values());
 
     const filteredPlanRegulador = selectedPlanRegulador.filter(pr => {
+      // Do NOT apply comuna filter in PRIC eval mode — we want the exact zones.
+      if (pricEvalZones && pricEvalZones.length > 0) return true;
       if (!filters.comunas || filters.comunas.length === 0) {
         return true;
       }
