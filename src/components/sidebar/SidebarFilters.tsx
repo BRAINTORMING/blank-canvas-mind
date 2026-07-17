@@ -1000,18 +1000,19 @@ export function CapasBaseSection() {
   const ctx = useSidebarFilters();
   const [open, setOpen] = useState(false);
   if (!hasPermission("capas")) return null;
+  const locked = !ctx.selectedRegion;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full">
+    <Collapsible open={locked ? false : open} onOpenChange={(v) => { if (!locked) setOpen(v); }}>
+      <CollapsibleTrigger asChild disabled={locked}>
+        <button className={cn("w-full", locked && "opacity-60 cursor-not-allowed")} title={locked ? "Selecciona una región para activar" : undefined}>
           <SectionTriggerInner
             open={open}
             icon={<Layers className="h-4 w-4 text-blue-500" />}
             label="Capas Base"
             count={ctx.capasWithCategorias.reduce((acc, c) => acc + ctx.getSelectedCategoriasCount(c.capa), 0)}
             countColorClass="bg-blue-50 text-blue-600"
-            tooltip="Activa capas base de información territorial"
+            tooltip={locked ? "Selecciona una región para activar" : "Activa capas base de información territorial"}
           />
         </button>
       </CollapsibleTrigger>
