@@ -1101,6 +1101,17 @@ export default function SearchBar({
               )}
             </div>
 
+            {/* Panel de Oportunidades — reemplaza el flujo N8N por Edge Function */}
+            {searchMode === 'ai' && aiMode === 'oportunidades' && !isFreePlan && (
+              <OportunidadesPanel
+                currentPoint={oportPoint}
+                onRequestPickPoint={() => setOportPicking((v) => !v)}
+                isPickingPoint={oportPicking}
+              />
+            )}
+
+
+
             {/* Suggestions Dropdown */}
             {searchMode === 'general' && showSuggestions && filteredSuggestions.length > 0 && (
               <div 
