@@ -8,6 +8,7 @@ import { COMUNAS_TARAPACA } from './ActivosLayerControl';
 import { cn } from '@/lib/utils';
 import { type Proyecto } from '@/hooks/useProyectos';
 import EvaluacionPRICModal, { type EvaluacionPRICData } from './EvaluacionPRICModal';
+import OportunidadesPanel from './OportunidadesPanel';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { showPaidLockToast } from '@/lib/planLocks';
@@ -241,6 +242,31 @@ export default function SearchBar({
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [showPreEvaluacionModal, setShowPreEvaluacionModal] = useState(false);
   const [isPreEvaluacionLoading, setIsPreEvaluacionLoading] = useState(false);
+  // Oportunidades: punto seleccionado en el mapa + modo picking (reutiliza los
+  // eventos pric:pickMode / pric:pointPicked que el mapa ya escucha).
+  const [oportPoint, setOportPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const [oportPicking, setOportPicking] = useState(false);
+  useEffect(() => {
+    if (aiMode !== 'oportunidades' || searchMode !== 'ai') return;
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent).detail as { lat: number; lng: number };
+      if (!d) return;
+      setOportPoint({ lat: d.lat, lng: d.lng });
+      setOportPicking(false);
+    };
+    window.addEventListener('pric:pointPicked', handler);
+    return () => window.removeEventListener('pric:pointPicked', handler);
+  }, [aiMode, searchMode]);
+  useEffect(() => {
+    if (aiMode !== 'oportunidades' || searchMode !== 'ai') {
+      if (oportPicking) {
+        window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: false } }));
+        setOportPicking(false);
+      }
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('pric:pickMode', { detail: { enabled: oportPicking } }));
+  }, [oportPicking, aiMode, searchMode]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -699,6 +725,9 @@ export default function SearchBar({
   };
 
   const handleAISearch = async () => {
+    // La pestaña "Oportunidades" tiene su propio panel (Edge Function).
+    // Ignoramos aquí para no golpear el webhook antiguo de N8N.
+    if (aiMode === 'oportunidades') return;
     if (!query.trim()) {
       toast({
         title: "Mensaje vacío",
@@ -1074,6 +1103,17 @@ export default function SearchBar({
                 </div>
               )}
             </div>
+
+            {/* Panel de Oportunidades — reemplaza el flujo N8N por Edge Function */}
+            {searchMode === 'ai' && aiMode === 'oportunidades' && !isFreePlan && (
+              <OportunidadesPanel
+                currentPoint={oportPoint}
+                onRequestPickPoint={() => setOportPicking((v) => !v)}
+                isPickingPoint={oportPicking}
+              />
+            )}
+
+
 
             {/* Suggestions Dropdown */}
             {searchMode === 'general' && showSuggestions && filteredSuggestions.length > 0 && (
