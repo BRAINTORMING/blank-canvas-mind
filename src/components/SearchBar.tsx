@@ -8,6 +8,7 @@ import { COMUNAS_TARAPACA } from './ActivosLayerControl';
 import { cn } from '@/lib/utils';
 import { type Proyecto } from '@/hooks/useProyectos';
 import EvaluacionPRICModal, { type EvaluacionPRICData } from './EvaluacionPRICModal';
+import OportunidadesPanel from './OportunidadesPanel';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { showPaidLockToast } from '@/lib/planLocks';
