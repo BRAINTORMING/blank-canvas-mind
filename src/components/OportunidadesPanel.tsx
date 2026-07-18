@@ -113,7 +113,7 @@ function dictamenBadge(d?: string) {
   if (d === 'viable') return { label: 'Viable', cls: 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' };
   if (d === 'requiere_revision_manual')
     return { label: 'Requiere revisión manual', cls: 'bg-amber-500/15 text-amber-700 border border-amber-500/30' };
-  return { label: d.replaceAll('_', ' '), cls: 'bg-red-500/15 text-red-700 border border-red-500/30' };
+  return { label: d.replace(/_/g, ' '), cls: 'bg-red-500/15 text-red-700 border border-red-500/30' };
 }
 
 function senalIcon(s?: Precedente['senal']) {
