@@ -725,6 +725,9 @@ export default function SearchBar({
   };
 
   const handleAISearch = async () => {
+    // La pestaña "Oportunidades" tiene su propio panel (Edge Function).
+    // Ignoramos aquí para no golpear el webhook antiguo de N8N.
+    if (aiMode === 'oportunidades') return;
     if (!query.trim()) {
       toast({
         title: "Mensaje vacío",
