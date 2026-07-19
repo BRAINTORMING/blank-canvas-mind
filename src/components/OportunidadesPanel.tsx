@@ -807,8 +807,9 @@ export default function OportunidadesPanel({
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </TooltipProvider>
   );
 }
+
