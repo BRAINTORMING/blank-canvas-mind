@@ -276,10 +276,13 @@ export default function SearchBar({
   const { currentWord, isAnimating } = useAnimatedPlaceholder(searchMode === 'ai');
   const { history, addToHistory } = useSearchHistory();
 
-  // Notify parent when PRIC form opens/closes
+  // The right-side drawer signal covers both PRIC and Oportunidades panels so
+  // the map shrinks identically for both flows.
+  const oportunidadesOpen = searchMode === 'ai' && aiMode === 'oportunidades' && !isFreePlan;
   useEffect(() => {
-    onPricFormOpenChange?.(showPreEvaluacionModal);
-  }, [showPreEvaluacionModal, onPricFormOpenChange]);
+    onPricFormOpenChange?.(showPreEvaluacionModal || oportunidadesOpen);
+  }, [showPreEvaluacionModal, oportunidadesOpen, onPricFormOpenChange]);
+
 
   const canUseGeneral = hasPermission('busqueda_general');
   const canUseAI = hasPermission('consulta_ia');
