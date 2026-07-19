@@ -177,6 +177,31 @@ export default function OportunidadesPanel({
   const [response, setResponse] = useState<ConsultarViabilidadResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Modo A "Explorar zona": pinta un círculo con el radio (reutiliza la capa
+  // de Análisis Radial en el mapa) y zoom al punto. Se limpia cuando el modo
+  // cambia, el panel se cierra o se pierde el punto.
+  useEffect(() => {
+    if (!open) return;
+    if (modo === 'exploracion' && currentPoint) {
+      window.dispatchEvent(
+        new CustomEvent('radial:set', {
+          detail: { active: true, center: { lat: currentPoint.lat, lng: currentPoint.lng }, radiusKm: radioKm },
+        }),
+      );
+    } else {
+      window.dispatchEvent(new CustomEvent('radial:set', { detail: { active: false } }));
+    }
+  }, [open, modo, currentPoint?.lat, currentPoint?.lng, radioKm]);
+
+  useEffect(() => {
+    // Limpia el círculo al cerrar el drawer.
+    if (!open) {
+      window.dispatchEvent(new CustomEvent('radial:set', { detail: { active: false } }));
+    }
+  }, [open]);
+
+
+
   // Cargar tipos de proyecto (misma tabla que usa Evaluación PRIC — SSOT)
   useEffect(() => {
     if (modo !== 'punto_fijo' || !externalSupabase || tiposProyecto.length > 0) return;
