@@ -23,9 +23,12 @@ import {
   Crosshair,
   MapPin,
   ArrowRight,
+  X,
+  Lightbulb,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
 
 // N8N webhook antiguo, dejado a propósito como referencia para poder comparar
 // respuestas en paralelo si es necesario. NO se llama desde aquí.
