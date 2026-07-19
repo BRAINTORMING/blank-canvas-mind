@@ -276,10 +276,13 @@ export default function SearchBar({
   const { currentWord, isAnimating } = useAnimatedPlaceholder(searchMode === 'ai');
   const { history, addToHistory } = useSearchHistory();
 
-  // Notify parent when PRIC form opens/closes
+  // The right-side drawer signal covers both PRIC and Oportunidades panels so
+  // the map shrinks identically for both flows.
+  const oportunidadesOpen = searchMode === 'ai' && aiMode === 'oportunidades' && !isFreePlan;
   useEffect(() => {
-    onPricFormOpenChange?.(showPreEvaluacionModal);
-  }, [showPreEvaluacionModal, onPricFormOpenChange]);
+    onPricFormOpenChange?.(showPreEvaluacionModal || oportunidadesOpen);
+  }, [showPreEvaluacionModal, oportunidadesOpen, onPricFormOpenChange]);
+
 
   const canUseGeneral = hasPermission('busqueda_general');
   const canUseAI = hasPermission('consulta_ia');
@@ -1104,14 +1107,8 @@ export default function SearchBar({
               )}
             </div>
 
-            {/* Panel de Oportunidades — reemplaza el flujo N8N por Edge Function */}
-            {searchMode === 'ai' && aiMode === 'oportunidades' && !isFreePlan && (
-              <OportunidadesPanel
-                currentPoint={oportPoint}
-                onRequestPickPoint={() => setOportPicking((v) => !v)}
-                isPickingPoint={oportPicking}
-              />
-            )}
+            {/* Panel de Oportunidades — se renderiza como drawer lateral fuera del contenedor (ver más abajo) */}
+
 
 
 
@@ -1311,6 +1308,17 @@ export default function SearchBar({
         onSubmit={handleEvaluacionPRICSubmit}
         isLoading={isPreEvaluacionLoading}
       />
+
+      {/* Oportunidades side drawer — mismo layout que Evaluación PRIC */}
+      <OportunidadesPanel
+        open={oportunidadesOpen}
+        onClose={() => setAiMode('pre-evaluacion')}
+        currentPoint={oportPoint}
+        onRequestPickPoint={() => setOportPicking((v) => !v)}
+        isPickingPoint={oportPicking}
+        pickMode={oportPicking}
+      />
     </>
   );
 }
+
