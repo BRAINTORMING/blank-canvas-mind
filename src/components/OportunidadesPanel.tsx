@@ -133,17 +133,25 @@ function senalIcon(s?: Precedente['senal']) {
 }
 
 interface OportunidadesPanelProps {
+  /** Controls visibility of the side drawer */
+  open: boolean;
+  onClose: () => void;
   /** Ubicación viene del picker del mapa o del selector de región */
   currentPoint?: { lat: number; lng: number } | null;
   onRequestPickPoint?: () => void;
   isPickingPoint?: boolean;
+  pickMode?: boolean;
 }
 
 export default function OportunidadesPanel({
+  open,
+  onClose,
   currentPoint,
   onRequestPickPoint,
   isPickingPoint,
+  pickMode,
 }: OportunidadesPanelProps) {
+
   const { toast } = useToast();
   const [modo, setModo] = useState<OportunidadModo | null>(null);
 
