@@ -1308,6 +1308,17 @@ export default function SearchBar({
         onSubmit={handleEvaluacionPRICSubmit}
         isLoading={isPreEvaluacionLoading}
       />
+
+      {/* Oportunidades side drawer — mismo layout que Evaluación PRIC */}
+      <OportunidadesPanel
+        open={oportunidadesOpen}
+        onClose={() => setAiMode('pre-evaluacion')}
+        currentPoint={oportPoint}
+        onRequestPickPoint={() => setOportPicking((v) => !v)}
+        isPickingPoint={oportPicking}
+        pickMode={oportPicking}
+      />
     </>
   );
 }
+
