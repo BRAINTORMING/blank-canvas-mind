@@ -385,9 +385,65 @@ export default function OportunidadesPanel({
     }
   };
 
+  if (!open) return null;
+
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="mt-3 rounded-2xl border border-border bg-card/95 backdrop-blur p-3 space-y-3 shadow-sm">
+      <div className={cn('fixed inset-y-0 right-0 z-[2000] flex', pickMode && 'pointer-events-none')}>
+        <div
+          className={cn(
+            'flex-1 transition-colors',
+            pickMode ? 'bg-transparent pointer-events-none' : 'bg-foreground/30 pointer-events-auto',
+          )}
+          onClick={() => !pickMode && onClose()}
+        />
+
+        {pickMode && (
+          <div className="pointer-events-auto fixed top-4 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 rounded-full bg-primary text-white px-4 py-2 shadow-lg animate-in fade-in-0 slide-in-from-top-2 duration-200">
+            <Crosshair className="h-4 w-4" />
+            <span className="text-xs font-medium">Haz clic en el mapa para fijar el punto</span>
+            <button
+              type="button"
+              onClick={() => onRequestPickPoint?.()}
+              className="ml-2 text-[10px] underline underline-offset-2 opacity-90 hover:opacity-100"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        <div
+          className={cn(
+            'w-[520px] max-w-[90vw] flex flex-col font-graphik animate-in slide-in-from-right duration-300 pointer-events-auto transition-opacity overflow-y-auto',
+            pickMode && 'opacity-60 hover:opacity-100',
+          )}
+          style={{
+            background: 'hsl(var(--background))',
+            borderLeft: '1px solid hsl(var(--border))',
+            boxShadow: '0 0 48px rgba(0,0,0,0.08), -4px 0 24px rgba(0,0,0,0.06)',
+          }}
+        >
+          {/* Header */}
+          <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border))' }}>
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: 'hsl(var(--primary))' }}>
+                <Lightbulb className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-sm font-display font-semibold text-foreground">Oportunidades</h2>
+                <p className="text-[10px] text-muted-foreground font-medium">Consulta de viabilidad e inversión</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 px-5 py-4 space-y-3">
+
         {/* Selector de modo */}
         <div className="grid grid-cols-3 gap-2">
           {(Object.keys(modoInfo) as OportunidadModo[]).map((k) => {
