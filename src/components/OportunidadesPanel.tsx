@@ -47,11 +47,19 @@ interface TipoProyectoRow {
 interface Candidato {
   id?: string;
   nombre?: string;
+  etiqueta?: string;
+  tipo_nodo?: string;
   comuna?: string;
   lat?: number;
   lon?: number;
   distancia_m?: number;
   costo_contexto?: number;
+  // Contexto enriquecido (modos A y C)
+  nivel?: 'bajo' | 'medio' | 'alto';
+  motivo_principal?: string;
+  proyectos_cercanos_count?: number;
+  humedales_cercanos_count?: number;
+  tiene_restriccion_cercana?: boolean;
 }
 
 interface DictamenResp {
@@ -65,6 +73,38 @@ interface Precedente {
   nota?: string;
 }
 
+interface ProyectoCercano {
+  nombre?: string;
+  estado?: string;
+  sector?: string;
+  distancia_m?: number;
+}
+interface AmbientalCercano {
+  nombre?: string;
+  capa?: string;
+  distancia_m?: number;
+}
+interface ActivoCercano {
+  nombre?: string;
+  categoria?: string;
+  distancia_m?: number;
+}
+interface RestriccionEncima {
+  nombre?: string;
+  categoria?: string;
+}
+interface ContextoEnriquecido {
+  proyectos_cercanos?: ProyectoCercano[];
+  ambiental_cercano?: AmbientalCercano[];
+  activos_cercanos?: ActivoCercano[];
+  restriccion_pric_encima?: RestriccionEncima[];
+  tiene_restriccion_directa?: boolean;
+}
+interface CitaNormativa {
+  categoria?: string;
+  fragmento?: string;
+}
+
 interface ConsultarViabilidadResponse {
   modo?: OportunidadModo;
   candidatos?: Candidato[];
@@ -73,8 +113,11 @@ interface ConsultarViabilidadResponse {
   dictamen?: DictamenResp;
   costo_contexto_detalle?: Array<{ etiqueta: string; valor: number }>;
   precedentes?: Precedente[];
+  contexto_enriquecido?: ContextoEnriquecido;
+  citas_normativa?: CitaNormativa[];
   error?: string;
 }
+
 
 const modoInfo: Record<
   OportunidadModo,
@@ -131,6 +174,28 @@ function senalIcon(s?: Precedente['senal']) {
       return '—';
   }
 }
+
+function colorDotByNivel(n?: 'bajo' | 'medio' | 'alto'): string {
+  if (n === 'alto') return 'bg-red-500';
+  if (n === 'medio') return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+function formatDistancia(m?: number): string {
+  if (m == null) return '';
+  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+  return `${Math.round(m)} m`;
+}
+
+function estadoBadgeCls(estado?: string): { cls: string; icon: string } {
+  const e = (estado || '').toLowerCase();
+  if (e.includes('aprob')) return { cls: 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30', icon: '✅' };
+  if (e.includes('rechaz')) return { cls: 'bg-red-500/15 text-red-700 border border-red-500/30', icon: '❌' };
+  if (e.includes('calific') || e.includes('trámite') || e.includes('tramite') || e.includes('evaluacion') || e.includes('evaluación'))
+    return { cls: 'bg-amber-500/15 text-amber-700 border border-amber-500/30', icon: '⏳' };
+  return { cls: 'bg-muted text-muted-foreground border border-border', icon: '•' };
+}
+
 
 interface OportunidadesPanelProps {
   /** Controls visibility of the side drawer */
@@ -687,30 +752,42 @@ export default function OportunidadesPanel({
                 <p className="text-[10px] text-muted-foreground italic">
                   Vista exploratoria — sin dictamen definitivo. Haz clic en “Evaluar en detalle” para un análisis completo.
                 </p>
-                {(() => {
-                  const values = response.candidatos!.map((c) => c.costo_contexto ?? 0);
-                  const min = Math.min(...values);
-                  const max = Math.max(...values);
-                  return response.candidatos!.map((c, i) => (
-                    <div key={c.id ?? i} className="rounded-lg border border-border p-2.5 bg-background/60">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('h-2.5 w-2.5 rounded-full', colorByCosto(c.costo_contexto ?? 0, min, max))} />
-                        <span className="text-xs font-semibold text-foreground flex-1 truncate">{c.nombre ?? 'Zona candidata'}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {c.distancia_m != null ? `${(c.distancia_m / 1000).toFixed(1)} km` : ''}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground">
-                          Costo relativo: <b>{c.costo_contexto ?? '—'}</b>
-                        </span>
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => precargarModoB(c)}>
-                          Evaluar en detalle <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-                      </div>
+                {response.candidatos.map((c, i) => (
+                  <div key={c.id ?? i} className="rounded-lg border border-border p-2.5 bg-background/60">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('h-2.5 w-2.5 rounded-full flex-shrink-0', colorDotByNivel(c.nivel))} />
+                      <span className="text-xs font-semibold text-foreground flex-1 truncate">
+                        {c.nombre ?? c.etiqueta ?? 'Zona candidata'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                        {formatDistancia(c.distancia_m)}
+                      </span>
                     </div>
-                  ));
-                })()}
+                    {c.motivo_principal && (
+                      <p className="mt-1 text-[10px] text-muted-foreground leading-snug pl-4">{c.motivo_principal}</p>
+                    )}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-4">
+                      {c.proyectos_cercanos_count != null && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary text-[10px] px-1.5 py-0.5 text-foreground">
+                          🏗️ {c.proyectos_cercanos_count} proyectos cerca
+                        </span>
+                      )}
+                      {c.humedales_cercanos_count != null && c.humedales_cercanos_count > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 text-sky-700 border border-sky-500/20 text-[10px] px-1.5 py-0.5">
+                          💧 {c.humedales_cercanos_count} humedal{c.humedales_cercanos_count === 1 ? '' : 'es'} cerca
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between pl-4">
+                      <span className="text-[10px] text-muted-foreground">
+                        Costo relativo: <b>{c.costo_contexto ?? '—'}</b>
+                      </span>
+                      <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => precargarModoB(c)}>
+                        Evaluar en detalle <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -727,26 +804,125 @@ export default function OportunidadesPanel({
                       onClick={() => precargarModoB(c)}
                       className="rounded-lg border border-border p-2.5 bg-background/60 flex items-center gap-2 cursor-pointer hover:border-primary/40 transition-colors"
                     >
-                      <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+                      <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                         {i + 1}
                       </span>
-                      <span className="text-xs flex-1 truncate">{c.nombre ?? 'Candidato'}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {c.distancia_m != null ? `${(c.distancia_m / 1000).toFixed(1)} km` : ''}
+                      <span className="text-xs flex-1 truncate">{c.nombre ?? c.etiqueta ?? 'Candidato'}</span>
+                      {c.tiene_restriccion_cercana && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-amber-600 text-sm leading-none" aria-label="Restricción cercana">⚠️</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] text-[11px]">
+                            Esta zona tiene una restricción registrada cerca — revísala en detalle antes de decidir.
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                        {formatDistancia(c.distancia_m)}
                       </span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     </li>
                   ))}
                 </ol>
               </div>
             )}
 
+
             {/* Modo B */}
-            {response.respuesta_narrativa && (
+            {(response.respuesta_narrativa || response.contexto_enriquecido || (response.citas_normativa && response.citas_normativa.length > 0)) && (
               <div className="space-y-2.5">
-                <div className="prose prose-sm max-w-none text-foreground">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.respuesta_narrativa}</ReactMarkdown>
-                </div>
+                {response.respuesta_narrativa && (
+                  <div className="prose prose-sm max-w-none text-foreground">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.respuesta_narrativa}</ReactMarkdown>
+                  </div>
+                )}
+
+                {/* Aviso destacado si el punto está sobre una restricción directa */}
+                {response.contexto_enriquecido?.tiene_restriccion_directa && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                    <p className="text-xs font-semibold text-amber-800 leading-tight">
+                      ⚠️ Este punto está directamente sobre una zona de restricción.
+                    </p>
+                    {response.contexto_enriquecido.restriccion_pric_encima && response.contexto_enriquecido.restriccion_pric_encima.length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5 text-[11px] text-amber-900 list-disc pl-4">
+                        {response.contexto_enriquecido.restriccion_pric_encima.map((r, i) => (
+                          <li key={i}>
+                            <b>{r.nombre ?? 'Zona'}</b>
+                            {r.categoria ? ` — ${r.categoria}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Secciones colapsables de contexto enriquecido */}
+                {response.contexto_enriquecido?.proyectos_cercanos && response.contexto_enriquecido.proyectos_cercanos.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Proyectos cercanos ({response.contexto_enriquecido.proyectos_cercanos.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.proyectos_cercanos.map((p, i) => {
+                        const b = estadoBadgeCls(p.estado);
+                        return (
+                          <li key={i} className="text-[11px] flex items-center gap-2">
+                            <span className="flex-1 min-w-0 truncate"><b>{p.nombre ?? '—'}</b>{p.sector ? ` · ${p.sector}` : ''}</span>
+                            {p.estado && (
+                              <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium flex-shrink-0', b.cls)}>
+                                <span>{b.icon}</span>{p.estado}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(p.distancia_m)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </details>
+                )}
+
+                {response.contexto_enriquecido?.ambiental_cercano && response.contexto_enriquecido.ambiental_cercano.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Áreas ambientales cercanas ({response.contexto_enriquecido.ambiental_cercano.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.ambiental_cercano.map((a, i) => (
+                        <li key={i} className="text-[11px] flex items-center gap-2">
+                          <span className="flex-1 min-w-0 truncate"><b>{a.nombre ?? '—'}</b></span>
+                          {a.capa && (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex-shrink-0">
+                              {a.capa}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(a.distancia_m)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                {response.contexto_enriquecido?.activos_cercanos && response.contexto_enriquecido.activos_cercanos.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Infraestructura y actividad cercana ({response.contexto_enriquecido.activos_cercanos.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.activos_cercanos.map((a, i) => (
+                        <li key={i} className="text-[11px] flex items-center gap-2">
+                          <span className="flex-1 min-w-0 truncate"><b>{a.nombre ?? '—'}</b></span>
+                          {a.categoria && (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-secondary text-foreground flex-shrink-0">
+                              {a.categoria}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(a.distancia_m)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
 
                 <details className="rounded-lg border border-border bg-background/50 p-2.5">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">Ver detalle técnico</summary>
@@ -804,8 +980,34 @@ export default function OportunidadesPanel({
                     )}
                   </div>
                 </details>
+
+                {/* Normativa relacionada */}
+                {response.citas_normativa && response.citas_normativa.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-foreground">Normativa relacionada</p>
+                    <div className="space-y-1.5">
+                      {response.citas_normativa.map((c, i) => (
+                        <blockquote
+                          key={i}
+                          className="rounded-md border-l-2 border-primary/40 bg-background/60 px-3 py-2"
+                        >
+                          {c.categoria && (
+                            <span className="inline-block text-[9px] font-semibold uppercase tracking-wide text-primary/80 mb-1">
+                              {c.categoria.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                          <p className="text-[11px] text-foreground leading-snug italic">{c.fragmento}</p>
+                        </blockquote>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Fragmentos de referencia — no reemplazan asesoría legal.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
+
           </div>
         )}
           </div>
