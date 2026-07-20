@@ -175,6 +175,28 @@ function senalIcon(s?: Precedente['senal']) {
   }
 }
 
+function colorDotByNivel(n?: 'bajo' | 'medio' | 'alto'): string {
+  if (n === 'alto') return 'bg-red-500';
+  if (n === 'medio') return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+function formatDistancia(m?: number): string {
+  if (m == null) return '';
+  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+  return `${Math.round(m)} m`;
+}
+
+function estadoBadgeCls(estado?: string): { cls: string; icon: string } {
+  const e = (estado || '').toLowerCase();
+  if (e.includes('aprob')) return { cls: 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30', icon: '✅' };
+  if (e.includes('rechaz')) return { cls: 'bg-red-500/15 text-red-700 border border-red-500/30', icon: '❌' };
+  if (e.includes('calific') || e.includes('trámite') || e.includes('tramite') || e.includes('evaluacion') || e.includes('evaluación'))
+    return { cls: 'bg-amber-500/15 text-amber-700 border border-amber-500/30', icon: '⏳' };
+  return { cls: 'bg-muted text-muted-foreground border border-border', icon: '•' };
+}
+
+
 interface OportunidadesPanelProps {
   /** Controls visibility of the side drawer */
   open: boolean;
