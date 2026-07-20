@@ -47,11 +47,19 @@ interface TipoProyectoRow {
 interface Candidato {
   id?: string;
   nombre?: string;
+  etiqueta?: string;
+  tipo_nodo?: string;
   comuna?: string;
   lat?: number;
   lon?: number;
   distancia_m?: number;
   costo_contexto?: number;
+  // Contexto enriquecido (modos A y C)
+  nivel?: 'bajo' | 'medio' | 'alto';
+  motivo_principal?: string;
+  proyectos_cercanos_count?: number;
+  humedales_cercanos_count?: number;
+  tiene_restriccion_cercana?: boolean;
 }
 
 interface DictamenResp {
@@ -65,6 +73,38 @@ interface Precedente {
   nota?: string;
 }
 
+interface ProyectoCercano {
+  nombre?: string;
+  estado?: string;
+  sector?: string;
+  distancia_m?: number;
+}
+interface AmbientalCercano {
+  nombre?: string;
+  capa?: string;
+  distancia_m?: number;
+}
+interface ActivoCercano {
+  nombre?: string;
+  categoria?: string;
+  distancia_m?: number;
+}
+interface RestriccionEncima {
+  nombre?: string;
+  categoria?: string;
+}
+interface ContextoEnriquecido {
+  proyectos_cercanos?: ProyectoCercano[];
+  ambiental_cercano?: AmbientalCercano[];
+  activos_cercanos?: ActivoCercano[];
+  restriccion_pric_encima?: RestriccionEncima[];
+  tiene_restriccion_directa?: boolean;
+}
+interface CitaNormativa {
+  categoria?: string;
+  fragmento?: string;
+}
+
 interface ConsultarViabilidadResponse {
   modo?: OportunidadModo;
   candidatos?: Candidato[];
@@ -73,8 +113,11 @@ interface ConsultarViabilidadResponse {
   dictamen?: DictamenResp;
   costo_contexto_detalle?: Array<{ etiqueta: string; valor: number }>;
   precedentes?: Precedente[];
+  contexto_enriquecido?: ContextoEnriquecido;
+  citas_normativa?: CitaNormativa[];
   error?: string;
 }
+
 
 const modoInfo: Record<
   OportunidadModo,
