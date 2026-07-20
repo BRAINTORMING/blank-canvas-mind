@@ -830,11 +830,99 @@ export default function OportunidadesPanel({
 
 
             {/* Modo B */}
-            {response.respuesta_narrativa && (
+            {(response.respuesta_narrativa || response.contexto_enriquecido || (response.citas_normativa && response.citas_normativa.length > 0)) && (
               <div className="space-y-2.5">
-                <div className="prose prose-sm max-w-none text-foreground">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.respuesta_narrativa}</ReactMarkdown>
-                </div>
+                {response.respuesta_narrativa && (
+                  <div className="prose prose-sm max-w-none text-foreground">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.respuesta_narrativa}</ReactMarkdown>
+                  </div>
+                )}
+
+                {/* Aviso destacado si el punto está sobre una restricción directa */}
+                {response.contexto_enriquecido?.tiene_restriccion_directa && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                    <p className="text-xs font-semibold text-amber-800 leading-tight">
+                      ⚠️ Este punto está directamente sobre una zona de restricción.
+                    </p>
+                    {response.contexto_enriquecido.restriccion_pric_encima && response.contexto_enriquecido.restriccion_pric_encima.length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5 text-[11px] text-amber-900 list-disc pl-4">
+                        {response.contexto_enriquecido.restriccion_pric_encima.map((r, i) => (
+                          <li key={i}>
+                            <b>{r.nombre ?? 'Zona'}</b>
+                            {r.categoria ? ` — ${r.categoria}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Secciones colapsables de contexto enriquecido */}
+                {response.contexto_enriquecido?.proyectos_cercanos && response.contexto_enriquecido.proyectos_cercanos.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Proyectos cercanos ({response.contexto_enriquecido.proyectos_cercanos.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.proyectos_cercanos.map((p, i) => {
+                        const b = estadoBadgeCls(p.estado);
+                        return (
+                          <li key={i} className="text-[11px] flex items-center gap-2">
+                            <span className="flex-1 min-w-0 truncate"><b>{p.nombre ?? '—'}</b>{p.sector ? ` · ${p.sector}` : ''}</span>
+                            {p.estado && (
+                              <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium flex-shrink-0', b.cls)}>
+                                <span>{b.icon}</span>{p.estado}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(p.distancia_m)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </details>
+                )}
+
+                {response.contexto_enriquecido?.ambiental_cercano && response.contexto_enriquecido.ambiental_cercano.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Áreas ambientales cercanas ({response.contexto_enriquecido.ambiental_cercano.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.ambiental_cercano.map((a, i) => (
+                        <li key={i} className="text-[11px] flex items-center gap-2">
+                          <span className="flex-1 min-w-0 truncate"><b>{a.nombre ?? '—'}</b></span>
+                          {a.capa && (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex-shrink-0">
+                              {a.capa}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(a.distancia_m)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                {response.contexto_enriquecido?.activos_cercanos && response.contexto_enriquecido.activos_cercanos.length > 0 && (
+                  <details className="rounded-lg border border-border bg-background/50 p-2.5">
+                    <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                      Infraestructura y actividad cercana ({response.contexto_enriquecido.activos_cercanos.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">
+                      {response.contexto_enriquecido.activos_cercanos.map((a, i) => (
+                        <li key={i} className="text-[11px] flex items-center gap-2">
+                          <span className="flex-1 min-w-0 truncate"><b>{a.nombre ?? '—'}</b></span>
+                          {a.categoria && (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-secondary text-foreground flex-shrink-0">
+                              {a.categoria}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatDistancia(a.distancia_m)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
 
                 <details className="rounded-lg border border-border bg-background/50 p-2.5">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">Ver detalle técnico</summary>
@@ -892,8 +980,34 @@ export default function OportunidadesPanel({
                     )}
                   </div>
                 </details>
+
+                {/* Normativa relacionada */}
+                {response.citas_normativa && response.citas_normativa.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-foreground">Normativa relacionada</p>
+                    <div className="space-y-1.5">
+                      {response.citas_normativa.map((c, i) => (
+                        <blockquote
+                          key={i}
+                          className="rounded-md border-l-2 border-primary/40 bg-background/60 px-3 py-2"
+                        >
+                          {c.categoria && (
+                            <span className="inline-block text-[9px] font-semibold uppercase tracking-wide text-primary/80 mb-1">
+                              {c.categoria.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                          <p className="text-[11px] text-foreground leading-snug italic">{c.fragmento}</p>
+                        </blockquote>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Fragmentos de referencia — no reemplazan asesoría legal.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
+
           </div>
         )}
           </div>
