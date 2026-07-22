@@ -15,7 +15,7 @@ export class WindAnimation {
   private particles: Array<{ lng: number; lat: number; age: number }> = [];
   private grid: GridResponse | null = null;
   private hourOffset = 0;
-  private numParticles = 3500;
+  private numParticles = 7000;
   private maxAge = 90;
 
   constructor(map: mapboxgl.Map) {
@@ -124,7 +124,7 @@ export class WindAnimation {
       // Speed factor: km/h → degrees/frame (very rough)
       const spdFactor = 0.00006;
 
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
       for (const p of this.particles) {
         p.age++;
         const uv = this.sampleUV(p.lng, p.lat);
