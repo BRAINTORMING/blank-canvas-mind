@@ -16,6 +16,7 @@ import MapResultsCounter from './MapResultsCounter';
 import MapDetailPanel from './MapDetailPanel';
 import { summaryHTML, openDetailPanel } from '@/lib/mapPopups';
 import MapStyleSelector, { getStoredMapStyle } from './MapStyleSelector';
+import MonitoringController from './monitoring/MonitoringController';
 import {
   CORREDOR_ROUTES,
   CORREDOR_EVENT,
@@ -2744,6 +2745,7 @@ export default function MapView({
       )}
 
       <MapDetailPanel />
+      <MonitoringController />
     </div>
   );
 }
