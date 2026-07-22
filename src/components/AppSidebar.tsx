@@ -20,6 +20,7 @@ import {
   SidebarSectionHeader,
   FavoritesSection,
 } from "./sidebar/SidebarFilters";
+import MonitoringSection from "./monitoring/MonitoringSection";
 
 interface AppSidebarProps {
   onFiltersChange?: (filters: { capas: string[]; categorias: string[]; poligonos: PoligonoData[]; planRegulador: PlanReguladorData[]; comunas: string[] }) => void;
@@ -206,6 +207,14 @@ export function AppSidebar({
                   </div>
                 </>
               )}
+
+              {/* D-bis. MONITOREO TERRITORIAL — right below Proyectos */}
+              <SidebarSectionHeader title="Variables meteorológicas y ambientales en tiempo real">
+                Monitoreo Territorial
+              </SidebarSectionHeader>
+              <div className="px-1 pt-1">
+                <MonitoringSection />
+              </div>
             </SidebarFiltersProvider>
 
             {/* Spacer pushes Administración to the bottom */}

@@ -16,6 +16,7 @@ import MapResultsCounter from './MapResultsCounter';
 import MapDetailPanel from './MapDetailPanel';
 import { summaryHTML, openDetailPanel } from '@/lib/mapPopups';
 import MapStyleSelector, { getStoredMapStyle } from './MapStyleSelector';
+import MonitoringController from './monitoring/MonitoringController';
 import {
   CORREDOR_ROUTES,
   CORREDOR_EVENT,
@@ -1849,6 +1850,10 @@ export default function MapView({
       maxBounds: undefined,
     });
 
+    // Monitoreo Territorial — expose map instance globally for the monitoring controller.
+    (window as unknown as { __gdudexMap?: mapboxgl.Map }).__gdudexMap = map.current;
+    window.dispatchEvent(new CustomEvent('gdudex:mapReady'));
+
     // Set initial light preset (only for "auto" Mapbox Standard styles).
     map.current.on('style.load', () => {
       if (!map.current) return;
@@ -2740,6 +2745,7 @@ export default function MapView({
       )}
 
       <MapDetailPanel />
+      <MonitoringController />
     </div>
   );
 }
