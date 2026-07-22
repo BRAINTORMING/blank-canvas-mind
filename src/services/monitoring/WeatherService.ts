@@ -71,8 +71,8 @@ export const WeatherService = {
 
   async grid(
     bbox: [number, number, number, number],
-    cols = 8,
-    rows = 8
+    cols = 25,
+    rows = 25
   ): Promise<GridResponse> {
     const k = keyGrid(bbox, cols, rows);
     const hit = gridMem.get(k);
