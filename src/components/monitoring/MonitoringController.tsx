@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { WeatherLayerManager } from "@/services/monitoring/WeatherLayerManager";
+import { WeatherTileLayerManager } from "@/services/monitoring/WeatherTileLayerManager";
 import { WindAnimation } from "@/services/monitoring/WindAnimation";
 import { WeatherService, NASAFirmsService, FireRiskService } from "@/services/monitoring/WeatherService";
 import type { MonitoringLayerId } from "@/lib/monitoring/palettes";
@@ -21,6 +22,7 @@ export default function MonitoringController() {
   const [active, setActive] = useState<Set<MonitoringLayerId>>(new Set());
   const [hourOffset, setHourOffset] = useState(0);
   const mgrRef = useRef<WeatherLayerManager | null>(null);
+  const tileMgrRef = useRef<WeatherTileLayerManager | null>(null);
   const windRef = useRef<WindAnimation | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
@@ -45,6 +47,8 @@ export default function MonitoringController() {
     if (!ready) return;
     const mgr = new WeatherLayerManager(ready);
     mgrRef.current = mgr;
+    const tileMgr = new WeatherTileLayerManager(ready);
+    tileMgrRef.current = tileMgr;
     const wind = new WindAnimation(ready);
     windRef.current = wind;
 
@@ -64,6 +68,7 @@ export default function MonitoringController() {
     return () => {
       ready.off("moveend", onMoveEnd);
       mgr.destroy();
+      tileMgr.destroy();
       wind.destroy();
       if (ready.getLayer(FIRMS_LYR)) ready.removeLayer(FIRMS_LYR);
       if (ready.getSource(FIRMS_SRC)) ready.removeSource(FIRMS_SRC);
@@ -158,6 +163,9 @@ export default function MonitoringController() {
           if (map.getLayer(FIRMS_LYR)) map.removeLayer(FIRMS_LYR);
           if (map.getSource(FIRMS_SRC)) map.removeSource(FIRMS_SRC);
         }
+      } else if (d.id === "temperature") {
+        // Migrada a tiles XYZ — ya no pasa por el WeatherLayerManager viejo.
+        tileMgrRef.current?.setActive("temperature", d.on);
       } else {
         mgr.setActive(d.id, d.on);
       }
@@ -168,10 +176,11 @@ export default function MonitoringController() {
 
   // Hour offset handler
   useEffect(() => {
-    const mgr = mgrRef.current, wind = windRef.current;
+    const mgr = mgrRef.current, wind = windRef.current, tileMgr = tileMgrRef.current;
     if (!mgr) return;
     mgr.setHourOffset(hourOffset);
     wind?.setHourOffset(hourOffset);
+    tileMgr?.setHourOffset(hourOffset);
   }, [hourOffset]);
 
   // Click popup with all variables
