@@ -12,7 +12,7 @@
 import type mapboxgl from "mapbox-gl";
 import { colorAt, type Stop } from "@/lib/monitoring/palettes";
 
-const CANVAS_SIZE = 5120; // resolución fija; Mapbox la estira al cuadrilátero geográfico, así que solo afecta suavidad vs. costo de CPU
+const CANVAS_SIZE = 1024; // resolución fija; Mapbox la estira al cuadrilátero geográfico, así que solo afecta suavidad vs. costo de CPU
 
 export class ContinuousFieldLayer {
   private map: mapboxgl.Map;
