@@ -1,14 +1,11 @@
 // Monitoreo Territorial — Mapbox layer manager for weather variables.
-// Each variable is a Mapbox `heatmap` layer (WebGL under the hood) fed from a
-// grid of samples. Wind is a canvas particle overlay (see WindAnimation.ts).
+// Cada variable escalar se renderiza como una superficie continua (raster
+// interpolado) vía ContinuousFieldLayer. El viento se maneja aparte
+// (WindAnimation.ts) y FIRMS también (puntos, no campo continuo).
 import type mapboxgl from "mapbox-gl";
-import { LAYER_DEFS, FIRE_RISK_STOPS, mapboxHeatmapColor, type MonitoringLayerId } from "@/lib/monitoring/palettes";
+import { LAYER_DEFS, FIRE_RISK_STOPS, type MonitoringLayerId } from "@/lib/monitoring/palettes";
 import { WeatherService, FireRiskService, type GridResponse, type PointWeather } from "@/services/monitoring/WeatherService";
-
-type HeatmapVar = "temperature" | "solar" | "uv" | "humidity" | "rain" | "cloud" | "pressure" | "fireRisk";
-
-const SRC_PREFIX = "monitoring-src-";
-const LYR_PREFIX = "monitoring-lyr-";
+import { ContinuousFieldLayer } from "@/services/monitoring/ContinuousFieldLayer";
 
 export class WeatherLayerManager {
   private map: mapboxgl.Map;
@@ -16,6 +13,7 @@ export class WeatherLayerManager {
   private hourOffset = 0;
   private active = new Set<MonitoringLayerId>();
   private pendingGridFetch: Promise<void> | null = null;
+  private fields = new Map<MonitoringLayerId, ContinuousFieldLayer>();
 
   constructor(map: mapboxgl.Map) {
     this.map = map;
@@ -29,7 +27,6 @@ export class WeatherLayerManager {
 
   setHourOffset(h: number) {
     this.hourOffset = h;
-    // re-render all active heatmaps with new hour
     for (const l of this.active) this.renderLayer(l);
   }
 
@@ -37,7 +34,6 @@ export class WeatherLayerManager {
   activeLayers(): MonitoringLayerId[] { return [...this.active]; }
 
   refreshForViewport() {
-    // refetch grid based on new viewport
     this.grid = null;
     this.pendingGridFetch = null;
     if (this.active.size > 0) {
@@ -53,7 +49,6 @@ export class WeatherLayerManager {
     const b = this.map.getBounds();
     if (!b) return;
     const bbox: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-    // Expand slightly to avoid edge artifacts
     const dx = (bbox[2] - bbox[0]) * 0.1, dy = (bbox[3] - bbox[1]) * 0.1;
     const padded: [number, number, number, number] = [bbox[0] - dx, bbox[1] - dy, bbox[2] + dx, bbox[3] + dy];
     this.pendingGridFetch = WeatherService.grid(padded, 8, 8)
@@ -65,70 +60,44 @@ export class WeatherLayerManager {
 
   private renderLayer(layer: MonitoringLayerId) {
     if (!this.grid) return;
-    if (layer === "wind" || layer === "firms") return; // handled elsewhere
+    if (layer === "wind" || layer === "firms") return; // manejados aparte
 
-    const samples = WeatherService.extractHour(this.grid, this.hourOffset);
-    const features = samples
-      .map(s => this.toFeature(layer, s))
-      .filter((f): f is GeoJSON.Feature => Boolean(f));
+    const { cols, rows, bbox, grid: cells } = this.grid;
+    const values = new Float32Array(rows * cols).fill(NaN);
 
-    const srcId = SRC_PREFIX + layer;
-    const lyrId = LYR_PREFIX + layer;
-    const fc: GeoJSON.FeatureCollection = { type: "FeatureCollection", features };
-    const src = this.map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
-    if (src) {
-      src.setData(fc);
-      return;
+    for (let idx = 0; idx < cells.length; idx++) {
+      const h = cells[idx].hourly;
+      if (!h) continue;
+      const hIdx = Math.min(this.hourOffset, (h.time?.length ?? 1) - 1);
+      const raw: PointWeather = {
+        temperature_2m: h.temperature_2m?.[hIdx] ?? null,
+        relative_humidity_2m: h.relative_humidity_2m?.[hIdx] ?? null,
+        wind_speed_10m: h.wind_speed_10m?.[hIdx] ?? null,
+        wind_direction_10m: h.wind_direction_10m?.[hIdx] ?? null,
+        rain: h.rain?.[hIdx] ?? null,
+        cloud_cover: h.cloud_cover?.[hIdx] ?? null,
+        pressure_msl: h.pressure_msl?.[hIdx] ?? null,
+        uv_index: h.uv_index?.[hIdx] ?? null,
+        shortwave_radiation: h.shortwave_radiation?.[hIdx] ?? null,
+      };
+
+      let v: number | null = null;
+      if (layer === "fireRisk") {
+        v = FireRiskService.compute(raw).score;
+      } else {
+        const def = LAYER_DEFS[layer as keyof typeof LAYER_DEFS];
+        if (def) v = (raw as any)[def.variable];
+      }
+      if (v != null && Number.isFinite(v)) values[idx] = v;
     }
 
-    this.map.addSource(srcId, { type: "geojson", data: fc });
-
-    const { min, max, stops } = this.spec(layer);
-    this.map.addLayer({
-      id: lyrId,
-      type: "heatmap",
-      source: srcId,
-      maxzoom: 15,
-      paint: {
-        "heatmap-weight": [
-          "interpolate", ["linear"], ["get", "value"],
-          min, 0,
-          max, 1,
-        ],
-        "heatmap-intensity": [
-          "interpolate", ["linear"], ["zoom"],
-          0, 0.8,
-          6, 1.4,
-          12, 2.2,
-        ],
-        "heatmap-color": mapboxHeatmapColor(stops, min, max),
-        "heatmap-radius": [
-          "interpolate", ["linear"], ["zoom"],
-          0, 20,
-          4, 60,
-          8, 110,
-          12, 180,
-        ],
-        "heatmap-opacity": 0.72,
-      },
-    });
-  }
-
-  private toFeature(layer: MonitoringLayerId, s: { lat: number; lon: number; values: PointWeather }): GeoJSON.Feature | null {
-    let v: number | null = null;
-    if (layer === "fireRisk") {
-      v = FireRiskService.compute(s.values).score;
-    } else {
-      const def = LAYER_DEFS[layer as keyof typeof LAYER_DEFS];
-      if (!def) return null;
-      v = (s.values as any)[def.variable];
+    let field = this.fields.get(layer);
+    if (!field) {
+      const { min, max, stops } = this.spec(layer);
+      field = new ContinuousFieldLayer(this.map, layer, stops, min, max);
+      this.fields.set(layer, field);
     }
-    if (v == null || !Number.isFinite(v)) return null;
-    return {
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [s.lon, s.lat] },
-      properties: { value: v },
-    };
+    field.render(values, cols, rows, bbox);
   }
 
   private spec(layer: MonitoringLayerId): { min: number; max: number; stops: any } {
@@ -138,10 +107,11 @@ export class WeatherLayerManager {
   }
 
   private removeLayer(layer: MonitoringLayerId) {
-    const srcId = SRC_PREFIX + layer;
-    const lyrId = LYR_PREFIX + layer;
-    if (this.map.getLayer(lyrId)) this.map.removeLayer(lyrId);
-    if (this.map.getSource(srcId)) this.map.removeSource(srcId);
+    const field = this.fields.get(layer);
+    if (field) {
+      field.remove();
+      this.fields.delete(layer);
+    }
   }
 
   getGrid() { return this.grid; }
