@@ -12,7 +12,6 @@ export const WeatherService = {
         return data;
       })
       .finally(() => inflight.delete(k));
-
     inflight.set(k, p);
     return p;
   },
@@ -26,11 +25,8 @@ export const WeatherService = {
     const hit = gridMem.get(k);
     if (hit && hit.expiresAt > Date.now()) return hit.data;
     if (inflight.has(k)) return inflight.get(k)!;
-
     const p = supabase.functions
-      .invoke("weather-api", {
-        body: { mode: "grid", bbox, cols, rows },
-      })
+      .invoke("weather-api", { body: { mode: "grid", bbox, cols, rows } })
       .then(({ data, error }) => {
         if (error) throw error;
         gridMem.set(k, {
@@ -40,12 +36,10 @@ export const WeatherService = {
         return data as GridResponse;
       })
       .finally(() => inflight.delete(k));
-
     inflight.set(k, p);
     return p;
   },
 
-  // ✅ NUEVO MÉTODO
   async points(
     pts: { lat: number; lon: number }[],
     step: number
