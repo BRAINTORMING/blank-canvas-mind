@@ -1,6 +1,6 @@
 // Monitoreo Territorial — WeatherService, FireRiskService, FirmsService.
 // All external calls go through Supabase edge functions.
-import { externalSupabase as supabase } from "@/integrations/supabase/externalClient";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PointWeather {
   temperature_2m: number | null;
