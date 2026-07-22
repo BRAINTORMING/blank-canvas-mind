@@ -1849,6 +1849,10 @@ export default function MapView({
       maxBounds: undefined,
     });
 
+    // Monitoreo Territorial — expose map instance globally for the monitoring controller.
+    (window as unknown as { __gdudexMap?: mapboxgl.Map }).__gdudexMap = map.current;
+    window.dispatchEvent(new CustomEvent('gdudex:mapReady'));
+
     // Set initial light preset (only for "auto" Mapbox Standard styles).
     map.current.on('style.load', () => {
       if (!map.current) return;
