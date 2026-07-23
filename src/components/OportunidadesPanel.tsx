@@ -59,6 +59,7 @@ interface Candidato {
   motivo_principal?: string;
   proyectos_cercanos_count?: number;
   humedales_cercanos_count?: number;
+  activos_cercanos_count?: number;
   tiene_restriccion_cercana?: boolean;
 }
 
@@ -775,6 +776,11 @@ export default function OportunidadesPanel({
                       {c.humedales_cercanos_count != null && c.humedales_cercanos_count > 0 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 text-sky-700 border border-sky-500/20 text-[10px] px-1.5 py-0.5">
                           💧 {c.humedales_cercanos_count} humedal{c.humedales_cercanos_count === 1 ? '' : 'es'} cerca
+                        </span>
+                      )}
+                      {c.activos_cercanos_count != null && c.activos_cercanos_count > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary text-[10px] px-1.5 py-0.5 text-foreground">
+                          📍 {c.activos_cercanos_count} activo{c.activos_cercanos_count === 1 ? '' : 's'} cerca
                         </span>
                       )}
                     </div>
