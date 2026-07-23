@@ -938,23 +938,25 @@ export function RegionesYComunasFixed() {
           </SelectContent>
         </Select>
 
-        {/* Multi-select comunas */}
+        {/* Multi-select comunas — bloqueado hasta que los polígonos hayan cargado */}
         <div className="relative">
           <button
             type="button"
-            disabled={!selectedRegion}
+            disabled={!selectedRegion || loadingComunas}
             onClick={() => setOpen(o => !o)}
             className={cn(
               "w-full h-9 text-xs bg-white border border-border rounded-[13px] flex items-center justify-between px-3 transition-colors",
-              !selectedRegion ? "opacity-50 cursor-not-allowed" : "hover:bg-[#F9FAFB]"
+              (!selectedRegion || loadingComunas) ? "opacity-50 cursor-not-allowed" : "hover:bg-[#F9FAFB]"
             )}
+            title={loadingComunas ? "Cargando comunas..." : undefined}
           >
             <span className={cn("truncate", selectedComunas.length === 0 && "text-muted-foreground")}>
-              {triggerLabel}
+              {loadingComunas ? "Cargando comunas..." : triggerLabel}
             </span>
             <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
           </button>
-          {open && selectedRegion && (
+          {open && selectedRegion && !loadingComunas && (
+
             <>
               <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
               <div

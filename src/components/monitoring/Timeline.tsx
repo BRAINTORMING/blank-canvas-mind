@@ -13,7 +13,7 @@ interface Props { value: number; onChange: (h: number) => void }
 
 export default function Timeline({ value, onChange }: Props) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-10">
+    <div className="absolute left-1/2 -translate-x-1/2 bottom-20 z-10">
       <div className="bg-white/95 backdrop-blur rounded-full px-2 py-1.5 flex items-center gap-1" style={{ boxShadow: "0 4px 20px -4px rgba(0,0,0,0.15)" }}>
         {OFFSETS.map(o => (
           <button

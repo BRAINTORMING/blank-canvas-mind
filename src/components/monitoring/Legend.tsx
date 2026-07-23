@@ -22,10 +22,11 @@ export default function Legend({ active }: Props) {
   if (items.length === 0 && specials.length === 0) return null;
 
   return (
-    <div className="absolute right-3 bottom-24 z-10 pointer-events-none">
-      <div className="bg-white/95 backdrop-blur rounded-xl p-3 space-y-2.5 max-w-[240px]" style={{ boxShadow: "0 4px 20px -4px rgba(0,0,0,0.15)" }}>
+    <div className="absolute left-1/2 -translate-x-1/2 bottom-36 z-10 pointer-events-none">
+      <div className="bg-white/95 backdrop-blur rounded-xl px-4 py-2.5 flex items-center gap-4 max-w-[92vw]" style={{ boxShadow: "0 4px 20px -4px rgba(0,0,0,0.15)" }}>
+
         {items.map(it => (
-          <div key={it.id}>
+          <div key={it.id} className="min-w-[140px]">
             <div className="text-[11px] font-semibold text-foreground mb-1">{it.label}{it.unit ? ` (${it.unit})` : ""}</div>
             <div className="h-2 rounded-full overflow-hidden" style={{
               background: `linear-gradient(to right, ${it.stops.map(s => s.c).join(",")})`,
@@ -37,12 +38,13 @@ export default function Legend({ active }: Props) {
           </div>
         ))}
         {specials.map(s => (
-          <div key={s.id} className="text-[11px]">
+          <div key={s.id} className="text-[11px] min-w-[110px]">
             <div className="font-semibold">{s.label}</div>
             <div className="text-muted-foreground text-[10px]">{s.note}</div>
           </div>
         ))}
       </div>
+
     </div>
   );
 }

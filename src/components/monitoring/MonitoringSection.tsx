@@ -3,6 +3,7 @@ import {
   Thermometer, Wind, Sun, Droplets, CloudRain, Cloud,
   Gauge, Flame, AlertTriangle, Zap, ChevronDown, ChevronRight,
 } from "lucide-react";
+
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { MonitoringLayerId } from "@/lib/monitoring/palettes";
@@ -56,7 +57,7 @@ export default function MonitoringSection({ disabled }: MonitoringSectionProps) 
         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-semibold text-foreground hover:bg-[#EFF6FF] transition-colors"
         title="Variables meteorológicas y ambientales en tiempo real"
       >
-        <span className="text-base leading-none">🌦</span>
+        <CloudRain className="h-4 w-4 text-primary" />
         <span className="flex-1 text-left">Monitoreo Territorial</span>
         {activeCount > 0 && (
           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
