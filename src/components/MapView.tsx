@@ -1848,6 +1848,8 @@ export default function MapView({
       minZoom: 1,
       maxZoom: 18,
       maxBounds: undefined,
+      maxTileCacheSize: 2048,
+      fadeDuration: 150,
     });
 
     // Monitoreo Territorial — expose map instance globally for the monitoring controller.
