@@ -84,6 +84,7 @@ interface SidebarFiltersContextValue {
   // Region / Comuna
   regionsWithComunas: { region: string; comunas: { comuna: string; coordenadas: string }[] }[];
   loadingComunas: boolean;
+  coordsReady: boolean;
   selectedRegion: string;
   selectedComunas: string[];
   filteredComunas: { comuna: string; coordenadas: string }[];
@@ -738,6 +739,7 @@ export function SidebarFiltersProvider({
   const value: SidebarFiltersContextValue = {
     regionsWithComunas,
     loadingComunas,
+    coordsReady,
     selectedRegion,
     selectedComunas,
     filteredComunas,
