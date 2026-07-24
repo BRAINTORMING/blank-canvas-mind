@@ -187,7 +187,7 @@ export function SidebarFiltersProvider({
 }: ProviderProps) {
   const { toast } = useToast();
   const { trackCapas, trackModule } = useSessionTracking();
-  const { regionsWithComunas: allRegionsWithComunas, data: regionComunasData, loading: loadingComunas } = useRegionComunas();
+  const { regionsWithComunas: allRegionsWithComunas, data: regionComunasData, loading: loadingComunas, coordsReady } = useRegionComunas();
   const { regionesPermitidas } = useAuth();
 
   const normalize = useCallback(
