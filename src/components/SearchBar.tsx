@@ -931,7 +931,7 @@ export default function SearchBar({
                               : "text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          <GdudexMark className="h-4.5 w-4.5" />
+                          <GdudexMark className="h-5 w-5" />
                           <span>IA</span>
                         </button>
                       )}
