@@ -2181,9 +2181,24 @@ export default function MapView({
     }
     window.addEventListener(CORREDOR_EVENT, onCorredorSelection as EventListener);
 
+    // Swap map style in place — no full page reload.
+    const onStyleChange = (e: Event) => {
+      const style = (e as CustomEvent).detail as { url: string; auto?: boolean } | undefined;
+      if (!map.current || !style?.url) return;
+      map.current.setStyle(style.url);
+      map.current.once('style.load', () => {
+        if (!map.current) return;
+        if (style.auto) {
+          try { map.current.setConfigProperty('basemap', 'lightPreset', getLightPreset()); } catch {}
+        }
+      });
+    };
+    window.addEventListener('gdudex:mapStyleChange', onStyleChange as EventListener);
+
     // Cleanup
     return () => {
       window.removeEventListener(CORREDOR_EVENT, onCorredorSelection as EventListener);
+      window.removeEventListener('gdudex:mapStyleChange', onStyleChange as EventListener);
       clearInterval(lightInterval);
       map.current?.remove();
     };
