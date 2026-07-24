@@ -897,9 +897,10 @@ function SectionTriggerInner({ icon, label, count, countColorClass, open, toolti
 /** Fixed (non-collapsible) Regiones y Comunas at the top of the sidebar. */
 export function RegionesYComunasFixed() {
   const {
-    regionsWithComunas, loadingComunas, selectedRegion, selectedComunas, filteredComunas,
+    regionsWithComunas, loadingComunas, coordsReady, selectedRegion, selectedComunas, filteredComunas,
     setRegion, toggleComuna, selectAllComunas, deselectAllComunas,
   } = useSidebarFilters();
+  const comunasLocked = loadingComunas || !coordsReady;
   const { hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   if (!hasPermission("regiones_comunas")) return null;
