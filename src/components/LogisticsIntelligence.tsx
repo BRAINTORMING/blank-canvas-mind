@@ -99,7 +99,6 @@ export default function LogisticsIntelligence() {
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative flex-shrink-0">
                 <Globe className="h-4 w-4 text-primary" />
-                <Sparkles className="h-2 w-2 text-[#F97316] absolute -top-0.5 -right-0.5" />
               </div>
               <span className="font-medium text-[13px] text-foreground truncate">
                 Inteligencia Logística

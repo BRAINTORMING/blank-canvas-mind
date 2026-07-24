@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Loader2, Brain, Search, ArrowUp, Wand2, Filter, Layers, MapPin, Leaf, ChevronRight, Briefcase, History, Clock, FileSearch, TrendingUp, ClipboardList, Maximize2, Minimize2, Lock } from 'lucide-react';
+import GdudexMark from '@/components/icons/GdudexMark';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -892,19 +893,13 @@ export default function SearchBar({
         <div className={`flex flex-col ${isMobile ? 'w-full' : 'w-[520px]'}`}>
           {/* Search Input Container */}
           <div className="relative">
-            <div className={cn(
-              "flex flex-col rounded-2xl transition-all duration-300 ease-out",
-              searchMode === 'ai'
-                ? "rounded-[20px]"
-                : "rounded-2xl"
-            )}
-            style={{
-              background: 'hsl(var(--card))',
-              border: 'none',
-              boxShadow: searchMode === 'ai'
-                ? '0 12px 36px -8px rgba(0,0,0,0.14), 0 0 0 1px hsl(var(--primary) / 0.18)'
-                : '0 8px 28px -8px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.04)',
-            }}
+            <div
+              className="flex flex-col rounded-2xl transition-all duration-300 ease-out"
+              style={{
+                background: 'hsl(var(--card))',
+                border: 'none',
+                boxShadow: 'none',
+              }}
             >
               {/* Main input row */}
               <div className="flex items-stretch min-h-[56px]">
@@ -936,7 +931,7 @@ export default function SearchBar({
                               : "text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          <Brain className="h-3.5 w-3.5" />
+                          <GdudexMark className="h-3.5 w-3.5" />
                           <span>IA</span>
                         </button>
                       )}

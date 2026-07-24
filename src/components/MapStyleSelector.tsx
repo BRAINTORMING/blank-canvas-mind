@@ -54,11 +54,12 @@ export default function MapStyleSelector({ sidebarCollapsed = false, sidebarWidt
     if (style.key === current.key) return;
     try { localStorage.setItem(STORAGE_KEY, style.key); } catch {}
     setCurrent(style);
-    // Reload so map re-initializes cleanly with the new style.
-    window.location.reload();
+    // Swap the Mapbox style in place — no full page reload.
+    window.dispatchEvent(new CustomEvent("gdudex:mapStyleChange", { detail: style }));
   };
 
-  // Position: anchored to the right edge of the SearchBar.
+  // Position: flush to the right edge of the SearchBar (520px wide, centered).
+  // Search bar half-width = 260, plus 8px gap. Square 56×56 matches search bar height.
   const desktopStyle: React.CSSProperties = {
     top: 16,
     left: sidebarCollapsed
@@ -79,10 +80,9 @@ export default function MapStyleSelector({ sidebarCollapsed = false, sidebarWidt
           <button
             title="Cambiar tipo de mapa"
             aria-label="Cambiar tipo de mapa"
-            className="h-11 w-11 rounded-2xl bg-white flex items-center justify-center transition-colors hover:bg-[#EFF6FF]"
-            style={{ boxShadow: "0 8px 28px -8px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.04)" }}
+            className="h-14 w-14 rounded-2xl bg-card border border-border flex items-center justify-center transition-colors hover:bg-[#EFF6FF]"
           >
-            <LayersIcon className="h-4 w-4 text-foreground" />
+            <LayersIcon className="h-5 w-5 text-foreground" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
