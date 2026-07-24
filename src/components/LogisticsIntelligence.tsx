@@ -9,7 +9,6 @@ import {
   Globe,
   Lock,
   BrainCircuit,
-  Sparkles,
 } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';

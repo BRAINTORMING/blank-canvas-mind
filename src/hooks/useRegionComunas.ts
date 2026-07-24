@@ -19,6 +19,7 @@ export interface RegionWithComunas {
 export function useRegionComunas() {
   const [data, setData] = useState<RegionComunaData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [coordsReady, setCoordsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regionsWithComunas, setRegionsWithComunas] = useState<RegionWithComunas[]>([]);
   const coordsLoadedRef = useRef(false);
@@ -123,6 +124,7 @@ export function useRegionComunas() {
     console.log('[useRegionComunas] Phase 2 done: coordenadas loaded');
     setData([...updatedRows]);
     buildRegionsIndex(updatedRows);
+    setCoordsReady(true);
   }
 
   function buildRegionsIndex(rows: RegionComunaData[]) {
@@ -163,6 +165,7 @@ export function useRegionComunas() {
   return {
     data,
     loading,
+    coordsReady,
     error,
     regionsWithComunas,
     getComunasByRegion,
